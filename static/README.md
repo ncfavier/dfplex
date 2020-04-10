@@ -1,7 +1,7 @@
 Parameters
 ==========
 
-webfort.html supports a number of query parameters for configuration. Some
+dfplex.html supports a number of query parameters for configuration. Some
 of these really should be persistent settings but others are really only
 for debug purposes. here are all of them:
 

@@ -32,6 +32,7 @@ var host = params.host;
 var port = params.port;
 var tileSet = params.tiles;
 var textSet = params.text;
+var ovrSet = params.overworld;
 var colorscheme = params.colors;
 var nick = params.nick;
 var secret = params.secret;
@@ -91,22 +92,37 @@ function toGameTime(n) {
 	return times.join(", ");
 }
 
-function setStats(userCount, ingame_time, timeLeft) {
+function setStats(userCount, loadframes) {
 	var u = document.getElementById('user-count');
-	var t = document.getElementById('time-left');
-	u.innerHTML = String(userCount) + " <i class='fa fa-users'></i>";
+	// var t = document.getElementById('time-left');
+	u.innerHTML = String(userCount) + " <i class='fa fa-users'></i> ";
+}
 
-	if (timeLeft === -1) {
-		t.innerHTML = "";
-	} else {
-		t.innerHTML = (ingame_time? toGameTime(timeLeft) : toTime(timeLeft)) +
-			" <i class='fa fa-clock-o'></i>";
+function setDebug(debugInfo) {
+	var c = document.getElementById('trace-container');
+	var u = document.getElementById('trace');
+	if (debugInfo == "")
+	{
+		u.innerHTML = "";
+		//c.setAttribute("style","width:0px");
+	}
+	else
+	{
+		var ih = "<pre>" + debugInfo + "</pre>";
+		if (u.innerHTML != ih)
+		{
+			u.innerHTML = ih;
+		}
+		//c.setAttribute("style","width:200px");
 	}
 }
 
 function setStatus(text, color, onclick) {
 	var m = document.getElementById('message');
-	m.innerHTML = text;
+	if (m.innerHTML != text)
+	{
+		m.innerHTML = text;
+	}
 	var st = m.parentNode;
 	if (onclick) {
 		st.addEventListener('click', onclick);
@@ -156,21 +172,22 @@ function requestTurn() {
 }
 
 function renderQueueStatus(s) {
-	if (s.isActive) {
-		active = true;
-		setStatus("You're in charge now! Click here to end your turn.", 'green', requestTurn);
-	} else if (s.isNoPlayer) {
-		setStatus("Nobody is playing right now. Click here to ask for a turn.", 'grey', requestTurn);
-	} else {
-		var displayedName = s.currentPlayer || "Somebody else";
-		setStatus(displayedName +" is doing their best. Please wait warmly.", 'orange');
-	}
-	setStats(s.playerCount, s.ingameTime, s.timeLeft);
+	var display = s.currentPlayer || "Connected.";
+	active = true;
+	var colour = 'yellow';
+	if (display == "Connected." || display.startsWith("(MP)"))
+		colour = 'green'
+	if (display.startsWith("(UP)"))
+		colour = 'grey'
+	setStatus(display, colour, requestTurn);
+	setStats(s.playerCount, s.load);
+	setDebug(s.debugInfo);
 }
 
 // TODO: document, split
 function renderUpdate(ctx, data, offset) {
-	var t = [];
+	var t = []; // text tile indices
+	var ovr = []; // overworld tile indices
 	var k;
 	var x;
 	var y;
@@ -190,21 +207,37 @@ function renderUpdate(ctx, data, offset) {
 
 		var bg_x = ((bg % 4) * tilew2) + 15 * tilew;
 		var bg_y = (Math.floor(bg / 4) * tileh2) + 15 * tileh;
-		ctx.drawImage(cd,
-				bg_x, bg_y, tilew, tileh,
-				x * tilew, y * tileh, tilew, tileh);
+		ctx.drawImage(
+			// source image (tileset)
+			cd,
+			// source rect
+			bg_x, bg_y, tilew, tileh,
+			// dest rect
+			x * tilew, y * tileh, tilew, tileh
+		);
 
-		if (data[k + 3] & 64) {
+		// 6th bit: text. 7th bit: overworld
+		if ((data[k + 3] & 64)) {
 			t.push(k);
+			continue;
+		}
+		if ((data[k + 3] & 128)) {
+			ovr.push(k);
 			continue;
 		}
 		var fg_x = (s % 16) * tilew + ((fg % 4) * tilew2);
 		var fg_y = Math.floor(s / 16) * tileh + (Math.floor(fg / 4) * tileh2);
-		ctx.drawImage(cd,
-				fg_x, fg_y, tilew, tileh,
-				x * tilew, y * tileh, tilew, tileh);
+		ctx.drawImage(
+			// source image (tileset)
+			cd,
+			// source rect
+			fg_x, fg_y, tilew, tileh,
+			// dest rect
+			x * tilew, y * tileh, tilew, tileh
+		);
 	}
 
+	// draw text
 	for (var m = 0; m < t.length; m++) {
 		k = t[m];
 		x = data[k + 0];
@@ -216,9 +249,35 @@ function renderUpdate(ctx, data, offset) {
 
 		var i = (s % 16) * tilew + ((fg % 4) * tilew2);
 		var j = Math.floor(s / 16) * tileh + (Math.floor(fg / 4) * tileh2);
-		ctx.drawImage(ct,
-				i, j, tilew, tileh,
-				x * tilew, y * tileh, tilew, tileh);
+		ctx.drawImage(
+			// source image (textset)
+			ct,
+			// source rect
+			i, j, tilew, tileh,
+			// dest rect
+			x * tilew, y * tileh, tilew, tileh
+		);
+	}
+	
+	for (var m = 0; m < ovr.length; m++) {
+		k = ovr[m];
+		x = data[k + 0];
+		y = data[k + 1];
+
+		s = data[k + 2];
+		bg = data[k + 3];
+		fg = data[k + 4];
+
+		var i = (s % 16) * tilew + ((fg % 4) * tilew2);
+		var j = Math.floor(s / 16) * tileh + (Math.floor(fg / 4) * tileh2);
+		ctx.drawImage(
+			// source image (textset)
+			covr,
+			// source rect
+			i, j, tilew, tileh,
+			// dest rect
+			x * tilew, y * tileh, tilew, tileh
+		);
 	}
 }
 
@@ -231,11 +290,15 @@ function onMessage(evt) {
 		var gameStatus = {};
 		gameStatus.playerCount = data[1] & 127;
 
-		gameStatus.isActive   = (data[2] & 1) !== 0;
-		gameStatus.isNoPlayer = (data[2] & 2) !== 0;
-		gameStatus.ingameTime = (data[2] & 4) !== 0;
-
-		gameStatus.timeLeft =
+		gameStatus.isActive = (data[2] & 1) !== 0;
+		
+		// removed
+		gameStatus.isNoPlayer = false;
+		gameStatus.ingameTime = false;
+		gameStatus.timeLeft = -1;
+		
+		// # of frames overall
+		gameStatus.load =
 			(data[3]<<0) |
 			(data[4]<<8) |
 			(data[5]<<16) |
@@ -252,9 +315,20 @@ function onMessage(evt) {
 			activeNick += String.fromCharCode(data[i]);
 		}
 		gameStatus.currentPlayer = decodeURIComponent(activeNick);
+		
+		var offset = 10 + nickSize;
+		
+		var debugInfoSize = data[offset] | (data[offset + 1] << 8);
+		offset += 2;
+		var debugInfo = ""
+		for (var i = 0; i < debugInfoSize && data[offset + i] !== 0; ++i) {
+			debugInfo += String.fromCharCode(data[offset + i]);
+		}
+		offset += debugInfoSize;
+		gameStatus.debugInfo = debugInfo;
 
 		renderQueueStatus(gameStatus);
-		renderUpdate(ctx, data, nickSize+10);
+		renderUpdate(ctx, data, offset);
 
 		var now = performance.now();
 		var nextFrame = (1000 / MAX_FPS) - (now - lastFrame);
@@ -314,7 +388,7 @@ var make_loader = function() {
 	};
 }();
 
-var cd, ct;
+var cd, ct, covr;
 function init() {
 	document.body.style.backgroundColor =
 		'rgb(' + colors[0] + ',' + colors[1] + ',' + colors[2] + ')';
@@ -326,6 +400,10 @@ function init() {
 	ct = document.createElement('canvas');
 	ct.width = ct.height = 1024;
 	colorize(tt, ct);
+	
+	covr = document.createElement('canvas');
+	covr.width = covr.height = 1024;
+	colorize(tovr, covr);
 
 	lastFrame = performance.now();
 
@@ -347,13 +425,20 @@ function getFolder(path) {
 
 var root = getFolder(window.location.pathname);
 
+// tileset
 var ts = document.createElement('img');
 ts.src =  root + "art/" + tileSet;
 ts.onload = make_loader();
 
+// textset
 var tt = document.createElement('img');
 tt.src = root + "art/" + textSet;
 tt.onload = make_loader();
+
+// overworldset
+var tovr = document.createElement('img');
+tovr.src = root + "art/" + ovrSet;
+tovr.onload = make_loader();
 
 if (colorscheme !== undefined) {
 	var colorReq = new XMLHttpRequest();
@@ -369,43 +454,27 @@ if (colorscheme !== undefined) {
 
 var canvas = document.getElementById('myCanvas');
 
+
 document.onkeydown = function(ev) {
 	if (!active)
 		return;
 
-	if (ev.keyCode === 91 ||
-	    ev.keyCode === 18 ||
+	if (ev.keyCode === 18 ||
 	    ev.keyCode === 17 ||
 	    ev.keyCode === 16) {
 		return;
 	}
 
-	if (ev.keyCode < 65) {
-		var mod = (ev.shiftKey << 1) | (ev.ctrlKey << 2) | ev.altKey;
-		var data = new Uint8Array([cmd.sendKey, ev.keyCode, 0, mod]);
-		logKeyCode(ev);
-		websocket.send(data);
-		ev.preventDefault();
-	} else {
-		lastKeyCode = ev.keyCode;
-	}
-};
+    var mod = ev.shiftKey | (ev.ctrlKey << 1) | (ev.altKey << 2);
+    var charCode = 0;
+    if (ev.key.length == 1){
+      charCode = ev.key.charCodeAt(0)
+    }
+    var data = new Uint8Array([cmd.sendKey, ev.keyCode, charCode, mod]);
+    logKeyCode(ev);
+    websocket.send(data);
+    ev.preventDefault();
 
-document.onkeypress = function(ev) {
-	if (!active)
-		return;
-
-	var mod = (ev.shiftKey << 1) | (ev.ctrlKey << 2) | ev.altKey;
-	var data = new Uint8Array([cmd.sendKey, 0, ev.charCode, mod]);
-	logCharCode(ev);
-	websocket.send(data);
-
-	if (ev.stopPropagation) {
-		ev.stopPropagation();
-	} else if (window.event) {
-		window.event.cancelBubble = true;
-	}
-	ev.preventDefault();
 };
 
 

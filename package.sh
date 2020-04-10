@@ -3,7 +3,7 @@
 # This file is a part of Web Fortress
 # (c) 2014 Kyle Mclamb <alloyed@tfwno.gf>
 
-DF_VER="40.19"
+DF_VER="40.16"
 
 if [ ! -r "$1" ]; then
 	echo "Invalid file: $1"
@@ -33,7 +33,7 @@ echo ""              >> package/WF-USING.txt
 echo "## SERVER ##"  >> package/WF-USING.txt
 cat server/README.md >> package/WF-USING.txt
 
-zipname="webfort-$(git describe --tag)-df0.$DF_VER-win32.zip"
+zipname="dfplex-$(git describe --tag)-df0.$DF_VER-win32.zip"
 
 rm -v "$zipname"
 (cd package && zip -r "../$zipname" ./*)

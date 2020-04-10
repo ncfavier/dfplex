@@ -1,6 +1,6 @@
 get_directory_property(isPlugin PARENT_DIRECTORY)
 
-project(webfort)
+project(dfplex)
 
 if (NOT isPlugin)
 	cmake_minimum_required(VERSION 2.8)
@@ -12,19 +12,11 @@ if (NOT isPlugin)
 endif()
 
 # A list of source files
-set(SRC
-	webfort.cpp
-	server.cpp
-	config.cpp
-)
+file (GLOB SRC "*.cpp")
+
 # A list of headers
-set(HDRS
-	webfort.hpp
-	server.hpp
-	config.hpp
-	renderer_wrap.hpp
-	input.hpp
-)
+file (GLOB HDRS "*.hpp")
+
 set_source_files_properties(${HDRS} PROPERTIES HEADER_FILE_ONLY TRUE)
 
 # mash them together (headers are marked as headers and nothing will try to compile them)
@@ -78,9 +70,11 @@ include_directories(${SDL_INCLUDE_DIRS})
 
 # Boost/Asio
 set(Boost_FIND_REQUIRED TRUE)
-set(Boost_USE_STATIC_LIBS ON)
-set(WS_BOOST_LIBS system thread regex)
-find_package(Boost 1.39.0 COMPONENTS "${WS_BOOST_LIBS}")
+set(Boost_USE_STATIC_LIBS OFF)
+set(Boost_USE_SHARED_LIBS ON)
+set(Boost_USE_MULTITHREADED ON)
+set(WS_BOOST_LIBS system)
+find_package(Boost 1.38.0 REQUIRED COMPONENTS "${WS_BOOST_LIBS}")
 
 if(Boost_FOUND)
 	include_directories(${Boost_INCLUDE_DIRS})
@@ -90,12 +84,17 @@ endif()
 # websocketpp
 include_directories(websocketpp)
 
+# mongoose
+include_directories(mongoose-cpp)
+add_subdirectory(mongoose-cpp)
+
 if (isPlugin)
-	DFHACK_PLUGIN(webfort ${SRC} LINK_LIBRARIES dfhack-tinythread ${PROJECT_LIBS})
+	DFHACK_PLUGIN(dfplex ${SRC} LINK_LIBRARIES SDL dfhack-tinythread mongoose ${PROJECT_LIBS})
+	target_link_libraries(dfplex ${Boost_LIBRARIES} SDL)
 	INSTALL(DIRECTORY ../dist/shared/ DESTINATION .)
 else()
 	if (NOT UNIX)
-		message(FATAL_ERROR "Building webfort out-of-tree not supported on windows.")
+		message(FATAL_ERROR "Building dfplex out-of-tree not supported on windows.")
 	endif()
 	find_library(DFHACK_LIBRARY dfhack ${DH}/build/library)
 	find_library(TINYTHREAD_LIBRARY dfhack-tinythread ${DH}/build/depends/tthread)
@@ -111,10 +110,10 @@ else()
 		${DH}/depends/tthread
 	)
 
-	add_library(webfort.plug SHARED ${SRC})
-	target_link_libraries(webfort.plug ${PROJECT_LIBS})
+	add_library(dfplex.plug SHARED ${SRC})
+	target_link_libraries(dfplex.plug mongoose ${PROJECT_LIBS})
 	# Installing
-	install(TARGETS webfort.plug
+	install(TARGETS dfplex.plug
 		RUNTIME DESTINATION ${DF_ROOT}/hack/plugins
 		LIBRARY DESTINATION ${DF_ROOT}/hack/plugins
 	)

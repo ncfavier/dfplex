@@ -1,0 +1,34 @@
+This is the DFPlex config file, same syntax as DF raws.
+
+(Don't forget to forward your ports if you're not playing on LAN.)
+
+The port the static site will be served on. Players should connect to this port in their web browsers.
+[STATICPORT:8000]
+
+The directory containing static site files to be served.
+[STATICDIR:hack/www]
+
+The port the server's websocket will listen on. Don't forget to forward your ports.
+[PORT:1234]
+
+The max number of concurrent connections that the server will accept.
+[MAX_CLIENTS:32]
+
+Enable autosave while nobody is playing. You probably shouldn't use this yet.
+[AUTOSAVE_WHILE_IDLE:NO]
+
+This key enters uniplex mode.
+[UNIPLEXKEY:92]
+
+This key toggles client's debug output
+[DEBUGKEY:124]
+
+This key toggles server's debug output (written to out stream)
+[SERVERDEBUGKEY:96]
+
+Zoom to next client position (from default view)
+[PREV_CLIENT_POS_KEY:91]
+[NEXT_CLIENT_POS_KEY:93]
+
+[CURSOR_IS_TEXT:1]
+[NOPAUSE:1]

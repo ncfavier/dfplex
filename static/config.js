@@ -9,10 +9,11 @@
  */
 
 var config = {
-	host: document.location.hostname,
+	host: "localhost",
 	port: '1234',
-	tiles: "Spacefox_16x16.png",
+	tiles: "Phoebus.png",
 	text: "ShizzleClean.png",
+	overworld: "ShizzleClean.png",
 	nick: "",
 	secret: "",
 	colors: undefined,

@@ -2,5 +2,9 @@
 /server/dfhack
 /server/build
 /server/deps
+/static/config-local.js
 /package/
 *.zip
+df.tar
+df/
+save*

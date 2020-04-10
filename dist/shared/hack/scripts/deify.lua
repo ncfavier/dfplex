@@ -60,7 +60,6 @@ function make_set(list)
 end
 
 function choice(list)
-	if #list < 1 then return nil end
 	return list[math.random(#list)]
 end
 

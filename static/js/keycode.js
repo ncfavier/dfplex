@@ -111,7 +111,7 @@ function logKeyCode(ev) {
 		s += "SHIFT-";
 	}
 	s += _keyCodes[ev.keyCode];
-	console.log(s + " pressed.");
+	console.log(s + " down.");
 }
 
 function logCharCode(ev) {

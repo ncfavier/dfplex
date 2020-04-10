@@ -1,10 +1,22 @@
+/*
+ * Dwarfplex is based on Webfort, created by Vitaly Pronkin on 14/05/14.
+ * Copyright (c) 2020 white-rabbit, ISC license
+*/
+
 #include "config.hpp"
 
-bool INGAME_TIME = 0;
 bool AUTOSAVE_WHILE_IDLE = 0;
-int32_t TURNTIME = 600; // 10 minutes
 uint32_t MAX_CLIENTS = 32;
 uint16_t PORT = 1234;
+uint16_t STATICPORT = 8000;
+std::string STATICDIR = "hack/www";
+uint32_t UNIPLEXKEY = 0;
+uint32_t NEXT_CLIENT_POS_KEY = 0;
+uint32_t PREV_CLIENT_POS_KEY = 0;
+bool CURSOR_IS_TEXT = false;
+bool NOPAUSE = false;
+uint32_t DEBUGKEY = 0;
+uint32_t SERVERDEBUGKEY = 0;
 std::string SECRET = ""; // auth is disabled by default
 
 #include <iostream>
@@ -30,7 +42,7 @@ vector<string> split(const char *str, char c)
 
 bool load_text_file()
 {
-	ifstream f("data/init/webfort.txt");
+	ifstream f("data/init/dfplex.txt");
 	if (!f.is_open()) {
 		cerr << "Webfort failed to open config file, skipping." << endl;
 		return false;
@@ -52,20 +64,41 @@ bool load_text_file()
 		if (key == "PORT") {
 			PORT = (uint16_t)std::stol(val);
 		}
-		if (key == "TURNTIME") {
-			TURNTIME = (int64_t)std::stol(val);
+        if (key == "STATICPORT") {
+			PORT = (uint16_t)std::stol(val);
 		}
 		if (key == "MAX_CLIENTS") {
 			MAX_CLIENTS = (uint32_t)std::stol(val);
 		}
-		if (key == "INGAME_TIME") {
-			INGAME_TIME = val == "YES";
-		}
 		if (key == "AUTOSAVE_WHILE_IDLE") {
 			AUTOSAVE_WHILE_IDLE = val == "YES";
 		}
-		if (key == "SECRET") {
-			SECRET = val;
+		if (key == "NOPAUSE")
+        {
+		    NOPAUSE = std::stol(val);
+        }
+		if (key == "CURSOR_IS_TEXT")
+        {
+		    CURSOR_IS_TEXT = std::stol(val);
+        }
+	    if (key == "PREV_CLIENT_POS_KEY")
+        {
+		    PREV_CLIENT_POS_KEY = std::stol(val);
+        }
+	    if (key == "NEXT_CLIENT_POS_KEY")
+        {
+		    NEXT_CLIENT_POS_KEY = std::stol(val);
+        }
+        if (key == "DEBUGKEY")
+        {
+           DEBUGKEY = std::stol(val);
+        }
+        if (key == "SERVERDEBUGKEY")
+        {
+           SERVERDEBUGKEY = std::stol(val);
+        }
+        if (key == "UNIPLEXKEY") {
+            UNIPLEXKEY = std::stol(val);
 		}
 	}
 	return true;
@@ -74,23 +107,23 @@ bool load_text_file()
 bool load_env_vars()
 {
     char* tmp;
-	if ((tmp = getenv("WF_PORT"))) {
+	if ((tmp = getenv("DFPLEX_PORT"))) {
 		PORT = (uint16_t)std::stol(tmp);
 	}
-	if ((tmp = getenv("WF_TURNTIME"))) {
-		TURNTIME = (int64_t)std::stol(tmp);
+    if ((tmp = getenv("DFPLEX_STATICPORT"))) {
+		STATICPORT = (uint16_t)std::stol(tmp);
 	}
-	if ((tmp = getenv("WF_MAX_CLIENTS"))) {
+	if ((tmp = getenv("DFPLEX_MAX_CLIENTS"))) {
 		MAX_CLIENTS = (uint32_t)std::stol(tmp);
 	}
-	if ((tmp = getenv("WF_INGAME_TIME"))) {
-		INGAME_TIME = std::stol(tmp) != 0;
-	}
-	if ((tmp = getenv("WF_AUTOSAVE"))) {
+	if ((tmp = getenv("DFPLEX_AUTOSAVE"))) {
 		AUTOSAVE_WHILE_IDLE = std::stol(tmp) != 0;
 	}
-	if ((tmp = getenv("WF_SECRET"))) {
+	if ((tmp = getenv("DFPLEX_SECRET"))) {
 		SECRET = tmp;
+	}
+    if ((tmp = getenv("DFPLEX_STATICDIR"))) {
+		STATICDIR = tmp;
 	}
 	return true;
 }

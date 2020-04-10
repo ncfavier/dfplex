@@ -34,6 +34,7 @@ should come with your release of Web Fortress.
 
 Copyright (c) 2014, Vitaly Pronkin <pronvit@me.com>
 Copyright (c) 2014, Kyle McLamb <alloyed@tfwno.gf>
+Copyright (c) 2020, white-rabbit
 
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted, provided that the above

@@ -1,14 +1,14 @@
 /*
- * server.cpp
- * Part of Web Fortress
- *
+ * Dwarfplex is based on Webfort, created by Vitaly Pronkin on 14/05/14.
  * Copyright (c) 2014 mifki, ISC license.
+ * Copyright (c) 2020 white-rabbit, ISC license
  */
 
 #include "server.hpp"
+#include "DFHackVersion.h"
 
-#define WF_VERSION "WebFortress-v2.0"
-#define WF_INVALID "WebFortress-invalid"
+#define WF_VERSION "DFPlex-v0.1"
+#define WF_INVALID "DFPlex-invalid"
 
 #include <cassert>
 #include <websocketpp/config/asio_no_tls.hpp>
@@ -26,16 +26,11 @@ typedef server::message_ptr message_ptr;
 static conn_hdl null_conn = std::weak_ptr<void>();
 static Client* null_client;
 
-static conn_hdl active_conn = null_conn;
-
-static std::ostream* out;
-static std::ostream* logstream;
-static DFHack::color_ostream* raw_out;
 
 conn_map clients;
 
 #include "config.hpp"
-#include "webfort.hpp"
+#include "dfplex.hpp"
 #include "input.hpp"
 
 #include "MemAccess.h"
@@ -45,6 +40,10 @@ conn_map clients;
 #include "df/graphic.h"
 using df::global::gps;
 
+static unsigned char buf[0x100000];
+
+static std::ostream* out;
+static DFHack::color_ostream* raw_out;
 
 class logbuf : public std::stringbuf {
 public:
@@ -62,11 +61,18 @@ public:
         }
         // Remove uninformative [application]
         while ((i = o.find("[application]")) != std::string::npos) {
-            o.replace(i, 13, "[WEBFORT]");
+            o.replace(i, 13, "[DFPLEX]");
         }
 
-        std::cout << o;
+        // color warnings and errors
+        if (o.find("ERROR") != std::string::npos) {
+            dfout->color(DFHack::COLOR_RED);
+        } else if (o.find("WARN") != std::string::npos) {
+            dfout->color(DFHack::COLOR_YELLOW);
+        }
+
         *dfout << o;
+        std::cout << o;
 
         dfout->flush();
         dfout->color(DFHack::COLOR_RESET);
@@ -93,24 +99,23 @@ private:
     server* srv;
 };
 
-class logstream_t : public std::ostream {
-public:
-    logstream_t(DFHack::color_ostream* i_out)
-        : std::ostream(&m_lb), m_lb(i_out)
-    {}
-private:
-    logbuf m_lb;
-};
+size_t get_client_count()
+{
+    return clients.size();
+}
 
-class appstream : public std::ostream {
-public:
-    appstream(server* i_srv)
-        : std::ostream(&m_ab),  m_ab(i_srv)
-    {}
-private:
-    appbuf m_ab;
-};
-
+Client* get_client(size_t n)
+{
+    auto it = clients.begin();
+    for (size_t i = 0; i < n; ++i)
+    {
+        if (it == clients.end()) return nullptr;
+        it++;
+    }
+    if (it == clients.end()) return nullptr;
+    assert(it->second);
+    return it->second;
+}
 
 Client* get_client(conn_hdl hdl)
 {
@@ -119,91 +124,6 @@ Client* get_client(conn_hdl hdl)
         return null_client;
     }
     return it->second;
-}
-
-int32_t round_timer()
-{
-    if (INGAME_TIME) {
-        // FIXME: check if we are actually in-game
-        return DFHack::World::ReadCurrentTick(); // uint32_t
-    } else {
-        return time(NULL); // time_t, usually int32_t
-    }
-}
-
-#define IDLE_TIMEOUT 10
-time_t itime = 0;
-bool timed_out = true;
-void reset_idle_timer()
-{
-    itime = time(NULL);
-    timed_out = false;
-}
-
-void idle_timer()
-{
-    if (!timed_out && active_conn == null_conn) {
-        time_t now = time(NULL);
-        time_t diff = now - itime;
-        if (diff > IDLE_TIMEOUT) {
-            *out << "Quicksave triggered." << std::endl;
-            quicksave(raw_out);
-            timed_out = true;
-        }
-    }
-}
-
-void set_active(conn_hdl newc)
-{
-    if (active_conn == newc) { return; }
-    Client* newcl = get_client(newc); // fail early
-    active_conn = newc;
-
-    if (active_conn != null_conn) {
-        newcl->atime = round_timer();
-        memset(newcl->mod, 0, sizeof(newcl->mod));
-
-        std::stringstream ss;
-        if (newcl->nick == "") {
-            ss << "A wandering spirit";
-        } else {
-            deify(raw_out, newcl->nick);
-            ss << "The spirit " << newcl->nick;
-        }
-        ss << " has seized control.";
-        show_announcement(ss.str());
-    } else if (AUTOSAVE_WHILE_IDLE) {
-        reset_idle_timer();
-    }
-
-    if (!(*df::global::pause_state)) {
-        simkey(1, 0, SDL::K_SPACE, ' ');
-        simkey(0, 0, SDL::K_SPACE, ' ');
-    }
-
-    if (newcl->nick == "") {
-        *out << newcl->addr;
-    } else {
-        *out << newcl->nick;
-    }
-    *out << " is now active." << std::endl;
-}
-
-int32_t get_time_left(bool* time_up = nullptr)
-{
-    int32_t time_left = -1;
-    Client* active_cl = get_client(active_conn);
-
-    if (TURNTIME != 0 && (active_conn != null_conn) && clients.size() > 1) {
-        time_t now = round_timer();
-        int played = now - active_cl->atime;
-        if (played < TURNTIME) {
-            time_left = TURNTIME - played;
-        } else if (time_up != nullptr) {
-            *time_up = true;
-        }
-    }
-    return time_left;
 }
 
 std::string str(std::string s)
@@ -216,17 +136,16 @@ std::string status_json()
 {
     std::stringstream json;
     int active_players = clients.size();
-    Client* active_cl = get_client(active_conn);
-    std::string current_player = active_cl->nick;
-    int32_t time_left = get_time_left();
-    bool is_somebody_playing = active_conn != null_conn;
+    std::string current_player = "";
+    int32_t time_left = -1;
+    bool is_somebody_playing = active_players > 0;
 
     json << std::boolalpha << "{"
         <<  " \"active_players\": " << active_players
         << ", \"current_player\": " << str(current_player)
-        << ", \"time_left\": " << time_left
+        << ", \"time_left\": " << -1
         << ", \"is_somebody_playing\": " << is_somebody_playing
-        << ", \"using_ingame_time\": " << INGAME_TIME
+        << ", \"using_ingame_time\": " << false
         << ", \"dfhack_version\": " << str(DFHACK_VERSION)
         << ", \"webfort_version\": " << str(WF_VERSION)
         << " }\n";
@@ -263,6 +182,7 @@ bool validate_open(server* s, conn_hdl hdl)
 
 void on_open(server* s, conn_hdl hdl)
 {
+    dfplex_mutex.lock();
     if (s->get_con_from_hdl(hdl)->get_subprotocol() == WF_INVALID) {
         s->close(hdl, 4000, "Invalid version, expected '" WF_VERSION "'.");
         return;
@@ -274,9 +194,9 @@ void on_open(server* s, conn_hdl hdl)
     }
 
     auto raw_conn = s->get_con_from_hdl(hdl);
-    auto path = split(raw_conn->get_resource().substr(1).c_str(), '/');
+	auto path = split(raw_conn->get_resource().substr(1).c_str(), '/');
     std::string nick = path[0];
-    std::string user_secret = (path.size() > 1) ? path[1] : "";
+	std::string user_secret = (path.size() > 1) ? path[1] : "";
 
     if (nick == "__NOBODY") {
         s->close(hdl, 4002, "Invalid nickname.");
@@ -284,97 +204,100 @@ void on_open(server* s, conn_hdl hdl)
     }
 
     Client* cl = new Client;
-    cl->is_admin = (user_secret == SECRET);
+	cl->is_admin = (user_secret == SECRET);
 
     cl->addr = raw_conn->get_remote_endpoint();
     cl->nick = nick;
-    cl->atime = round_timer();
-    memset(cl->mod, 0, sizeof(cl->mod));
+    memset(cl->sc, 0, sizeof(cl->sc));
 
     assert(cl->addr != "");
     assert(cl->nick != "__NOBODY");
     clients[hdl] = cl;
+    dfplex_mutex.unlock();
 }
 
 void on_close(server* s, conn_hdl c)
 {
+    dfplex_mutex.lock();
     Client* cl = get_client(c);
     if (cl != null_client) {
-        if (c == active_conn) {
-            set_active(null_conn);
-        }
         delete cl;
     }
     clients.erase(c);
+    dfplex_mutex.unlock();
 }
 
-static unsigned char buf[64*1024];
 void tock(server* s, conn_hdl hdl)
 {
     Client* cl = get_client(hdl);
-    Client* active_cl = get_client(active_conn);
-    bool time_up = false;
-
-    idle_timer();
-    int32_t time_left = get_time_left(&time_up);
-
-    if (time_up) {
-        *out << active_cl->nick << " has run out of time." << std::endl;
-        set_active(null_conn);
-    }
-
+    
     unsigned char *b = buf;
     // [0] msgtype
     *(b++) = 110;
 
     uint8_t client_count = clients.size();
-    // [1] # of connected clients. 128 bit set if client is active player.
+    // [1] # of connected clients.
     *(b++) = client_count;
 
-    // [2] Bitfield.
-    uint8_t bits = 0;
-    bits |= hdl == active_conn?       1 : 0; // are you the active player?
-    bits |= null_conn == active_conn? 2 : 0; // is nobody playing?
-    bits |= INGAME_TIME?              4 : 0; // are we using in-game time?
+    // [2] is active
+    *(b++) = 1;
 
-    *(b++) = bits;
-
-    // [3-6] time left, in seconds. -1 if no timer.
-    memcpy(b, &time_left, sizeof(time_left));
-    b += sizeof(time_left);
+    // [3-6] load (sum of frames) -- REMOVED
+    const int32_t load = 0;
+    memcpy(b, &load, sizeof(load));
+    b += sizeof(load);
 
     // [7-8] game dimensions
     *(b++) = gps->dimx;
     *(b++) = gps->dimy;
 
-    // [9] Length of current active player's nick, including '\0'.
-    uint8_t nick_len = active_cl->nick.length() + 1;
-    *(b++) = nick_len;
-
-    unsigned char *mod = cl->mod;
-
-    // [10-M] null-terminated string: active player's nick
-    memcpy(b, active_cl->nick.c_str(), nick_len);
-    b += nick_len;
+    // dfplex sent the active player's nickname here.
+    // this is now used to send info_message.
+    // [9] (length info_message.)
+    uint8_t info_len = std::min<uint32_t>(0xff, cl->info_message.length() + 1);
+    *(b++) = info_len;
+    
+    // [10-M] info message.
+    memcpy(b, cl->info_message.c_str(), info_len);
+    b += info_len;
+    
+    // [?] (length debug info)
+    if (cl->m_debug_enabled)
+    {
+        uint16_t debug_info_len = std::min<uint32_t>(0xffff, cl->m_debug_info.length() + 1);
+        *(b++) = debug_info_len & 0x00ff;
+        *(b++) = (debug_info_len & 0xff00) >> 8;
+        
+        // [?] info message.
+        memcpy(b, cl->m_debug_info.c_str(), debug_info_len);
+        b += debug_info_len;
+    }
+    else
+    {
+        // send no debug info.
+        *(b++) = 0;
+        *(b++) = 0;
+    }
 
     // [M-N] Changed tiles. 5 bytes per tile
     for (int y = 0; y < gps->dimy; y++) {
         for (int x = 0; x < gps->dimx; x++) {
             const int tile = x * gps->dimy + y;
-            unsigned char *s = sc + tile*4;
-            if (mod[tile])
-                continue;
+            if (tile >= 256 * 256) break;
+            ClientTile& ct = cl->sc[tile]; // client's tile
+            if (ct.modified)
+            {
+                ct.modified = false;
+                *(b++) = x;
+                *(b++) = y;
+                *(b++) = ct.pen.ch;
+                *(b++) = ct.pen.bg | (ct.is_text << 6) | (ct.is_overworld << 7);
 
-            *(b++) = x;
-            *(b++) = y;
-            *(b++) = s[0];
-            *(b++) = s[2];
+                int bold = ct.pen.bold << 3;
+                int fg   = (ct.pen.fg + bold) & 0x0f;
 
-            int bold = (s[3] != 0) * 8;
-            int fg   = (s[1] + bold) % 16;
-
-            *(b++) = fg;
-            mod[tile] = 1;
+                *(b++) = fg;
+            }
         }
     }
     s->send(hdl, (const void*) buf, (size_t)(b-buf), ws::frame::opcode::binary);
@@ -382,69 +305,53 @@ void tock(server* s, conn_hdl hdl)
 
 void on_message(server* s, conn_hdl hdl, message_ptr msg)
 {
+    dfplex_mutex.lock();
     auto str = msg->get_payload();
     const unsigned char *mdata = (const unsigned char*) str.c_str();
     int msz = str.size();
 
     if (mdata[0] == 112 && msz == 3) { // ResizeEvent
-        if (hdl == active_conn) {
+        // TODO: how to handle resizing between multiple players
+        /*if (hdl == active_conn) {
             newwidth = mdata[1];
             newheight = mdata[2];
             needsresize = true;
-        }
+        }*/
     } else if (mdata[0] == 111 && msz == 4) { // KeyEvent
-        if (hdl == active_conn) {
-            Client* cl = get_client(hdl);
-            SDL::Key k = mdata[2] ? (SDL::Key)mdata[2] : mapInputCodeToSDL(mdata[1]);
-            bool is_safe_key = cl->is_admin ||
-                k != SDL::K_ESCAPE ||
-                is_safe_to_escape();
-            if (k != SDL::K_UNKNOWN && is_safe_key) {
-                int jsmods = mdata[3];
-                int sdlmods = 0;
+		Client* cl = get_client(hdl);
 
-                if (jsmods & 1) {
-                    simkey(1, 0, SDL::K_LALT, 0);
-                    sdlmods |= SDL::KMOD_ALT;
-                }
-                if (jsmods & 2) {
-                    simkey(1, 0, SDL::K_LSHIFT, 0);
-                    sdlmods |= SDL::KMOD_SHIFT;
-                }
-                if (jsmods & 4) {
-                    simkey(1, 0, SDL::K_LCTRL, 0);
-                    sdlmods |= SDL::KMOD_CTRL;
-                }
-
-                simkey(1, sdlmods, k, mdata[2]);
-                simkey(0, sdlmods, k, mdata[2]);
-
-                if (jsmods & 1) {
-                    simkey(0, 0, SDL::K_LALT, 0);
-                }
-                if (jsmods & 2) {
-                    simkey(0, 0, SDL::K_LSHIFT, 0);
-                }
-                if (jsmods & 4) {
-                    simkey(0, 0, SDL::K_LCTRL, 0);
-                }
-            }
+        if (mdata[1]){
+            KeyEvent match;
+            match.type = type_key;
+            match.mod = mdata[3];
+            match.unicode = mdata[2];// retain unicode information
+            match.key = mapInputCodeToSDL(mdata[1]);
+            // does SDL1.2 have this function?
+            // match.scancode = SDL_GetScancodeFromKey(key)
+            // add to queue
+            cl->keyqueue.push(match);
+        } else if (mdata[2])
+        {
+            KeyEvent match;
+            match.mod = 0; // unicode must not have modifiers.
+            match.type = type_unicode;
+            match.unicode = mdata[2];
+            cl->keyqueue.push(match);
+        } else {
+            goto skip;
         }
+        
+
     } else if (mdata[0] == 115) { // refreshScreen
         Client* cl = get_client(hdl);
-        memset(cl->mod, 0, sizeof(cl->mod));
-    } else if (mdata[0] == 116) { // requestTurn
-        assert(active_conn == active_conn);
-        assert(hdl != null_conn);
-        if (hdl == active_conn) {
-            set_active(null_conn);
-        } else if (active_conn == null_conn) {
-            set_active(hdl);
-        }
+        // in particular, this sets the modified flag to 0.
+        memset(cl->sc, 0, sizeof(cl->sc));
     } else {
         tock(s, hdl);
     }
 
+skip:
+    dfplex_mutex.unlock();
     return;
 }
 
@@ -453,49 +360,21 @@ void on_init(conn_hdl hdl, boost::asio::ip::tcp::socket & s)
     s.set_option(boost::asio::ip::tcp::no_delay(true));
 }
 
-void wsloop(void *a_srv)
-{
-    try {
-        ((server*)a_srv)->run();
-    } catch (const std::exception & e) {
-        *out << "ERROR: std::exception caught: " << e.what() << std::endl;
-    } catch (lib::error_code e) {
-        *out << "ERROR: ws++ exception caught: " << e.message() << std::endl;
-    } catch (...) {
-        *out << "ERROR: Unknown exception caught:" << std::endl;
-    }
-    return;
-}
-
-struct WFServerImpl {
-    tthread::thread* loop;
-    server srv;
-    WFServerImpl(DFHack::color_ostream&);
-    ~WFServerImpl();
-    void start();
-    void stop();
-};
-
-WFServerImpl::WFServerImpl(DFHack::color_ostream& i_raw_out)
+void wsthreadmain(void *i_raw_out)
 {
     null_client = new Client;
     null_client->nick = "__NOBODY";
 
-    raw_out = &i_raw_out;
-    logstream = new logstream_t(raw_out);
-    out = new appstream(&srv);
-}
+    raw_out = (DFHack::color_ostream*) i_raw_out;
+    logbuf lb((DFHack::color_ostream*) i_raw_out);
+    std::ostream logstream(&lb);
 
-WFServerImpl::~WFServerImpl()
-{
-    delete null_client;
-    delete logstream;
-    delete out;
-}
+    server srv;
 
-void WFServerImpl::start()
-{
-    load_config();
+    appbuf abuf(&srv);
+    std::ostream astream(&abuf);
+    out = &astream;
+
     try {
         srv.clear_access_channels(ws::log::alevel::all);
         srv.set_access_channels(
@@ -511,7 +390,7 @@ void WFServerImpl::start()
         );
         srv.init_asio();
 
-        srv.get_alog().set_ostream(logstream);
+        srv.get_alog().set_ostream(&logstream);
 
         srv.set_socket_init_handler(&on_init);
         srv.set_http_handler(bind(&on_http, &srv, ::_1));
@@ -519,33 +398,39 @@ void WFServerImpl::start()
         srv.set_open_handler(bind(&on_open, &srv, ::_1));
         srv.set_message_handler(bind(&on_message, &srv, ::_1, ::_2));
         srv.set_close_handler(bind(&on_close, &srv, ::_1));
-
+        // See https://stackoverflow.com/a/548912
+        // Prevent segfaults when restarting dwarf fortress, if the port was
+        // not released properly on exit
+        srv.set_reuse_addr(true);
         lib::error_code ec;
+
+        // FIXME: this sometimes segfaults.
         srv.listen(PORT, ec);
         if (ec) {
-            *out << "ERROR: Unable to start Webfort on port " << PORT
+            *out << "ERROR: Unable to start Dwarfplex on port " << PORT
                   << ", is it being used somehere else?" << std::endl;
             return;
         }
 
         srv.start_accept();
-        *out << "Web Fortress started on port " << PORT << std::endl;
+        *out << "Dwarfplex websocket serving on " << PORT << std::endl;
+        *out << "(Do not connect to this in your browser.) " << std::endl;
     } catch (const std::exception & e) {
-        *out << "Webfort failed to start: " << e.what() << std::endl;
+        *out << "Dwarfplex failed to start: " << e.what() << std::endl;
     } catch (lib::error_code e) {
-        *out << "Webfort failed to start: " << e.message() << std::endl;
+        *out << "Dwarfplex failed to start: " << e.message() << std::endl;
     } catch (...) {
-        *out << "Webfort failed to start: other exception" << std::endl;
+        *out << "Dwarfplex failed to start: other exception" << std::endl;
     }
-    loop = new tthread::thread(wsloop, &srv);
-}
 
-void WFServerImpl::stop()
-{
-    srv.stop();
+    try {
+        srv.run();
+    } catch (const std::exception & e) {
+        *out << "ERROR: std::exception caught: " << e.what() << std::endl;
+    } catch (lib::error_code e) {
+        *out << "ERROR: ws++ exception caught: " << e.message() << std::endl;
+    } catch (...) {
+        *out << "ERROR: Unknown exception caught:" << std::endl;
+    }
+    return;
 }
-
-WFServer::WFServer(DFHack::color_ostream& o) { impl = new WFServerImpl(o); }
-WFServer::~WFServer()  { delete impl; }
-void WFServer::start() { impl->start(); }
-void WFServer::stop()  { impl->stop(); }
