@@ -24,7 +24,7 @@ void init_static(void*)
 
     server.start();
     *_out << "[DFPLEX] Static site server started on port " << STATICPORT << endl;
-    *_out << "[DFPLEX] Connect to http://localhost:" << STATICPORT << "/webfort.html in your browser." << endl;
+    *_out << "[DFPLEX] Connect to http://localhost:" << STATICPORT << "/dfplex.html in your browser." << endl;
     
     while (1) {
         DFHack::Core::getInstance().getConsole().msleep(60);

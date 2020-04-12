@@ -2,7 +2,7 @@
 
 1. Installing the plugin.
 
-One half of Webfort is the dfhack plugin that gets added directly to your Dwarf
+DFPlex is the dfhack plugin that gets added directly to your Dwarf
 Fortress install. Just follow the dfhack installation instructions. If you're building
 from source, see the build instructions below ("From Source").
 

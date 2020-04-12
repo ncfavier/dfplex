@@ -21,24 +21,24 @@ A quick primer on query strings:
 
 Anything past a ? in a URL is a query string
 
-	http://<your host>/webfort.html?param=value
+	http://<your host>/dfplex.html?param=value
 
 here, the parameter `param` is being set to `value`.
 
-	http://<your host>/webfort.html?param
+	http://<your host>/dfplex.html?param
 
 If you don't give a value. it is assumed to be true. So here,
 `param` is true.
 
 You can also chain multiple parameters using &
 
-	http://<your host>/webfort.html?param1=1&param2=2
+	http://<your host>/dfplex.html?param1=1&param2=2
 
 Here, `param1` is set to `1`, and `param2` is set to `2`.
 
 A real world example:
 
-	http://<your host>/webfort.html?nick=Urist&hide-chat&tiles=ShizzleClean.png
+	http://<your host>/dfplex.html?nick=Urist&hide-chat&tiles=ShizzleClean.png
 
 Will set your `nick` to Urist, hide the chat pane, and set the tileset
 to `ShizzleClean.png`.
@@ -46,11 +46,11 @@ to `ShizzleClean.png`.
 Parameters can be stored into your browser's `localStorage`, where they can
 persist between sessions. for example, opening:
 
-	http://<your host>/webfort.html?nick=Urist&store
+	http://<your host>/dfplex.html?nick=Urist&store
 
 will store the nick `Urist` and restore it such that
 
-	http://<your host>/webfort.html
+	http://<your host>/dfplex.html
 
 will also have the the nick `Urist`. ATM, storage can only be reset to
 defaults by using the console command:

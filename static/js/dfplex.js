@@ -1,5 +1,5 @@
 /*
- * webfort.js
+ * dfplex.js
  * Copyright (c) 2014 mifki, ISC license.
  */
 
@@ -132,7 +132,7 @@ function setStatus(text, color, onclick) {
 
 function connect() {
 	setStatus('Connecting...', 'orange');
-	websocket = new WebSocket(wsUri, ['WebFortress-v2.0', 'WebFortress-invalid']);
+	websocket = new WebSocket(wsUri, ['DFPlex-v0.1', 'DFPlex-invalid']);
 	websocket.binaryType = 'arraybuffer';
 	websocket.onopen  = onOpen;
 	websocket.onclose = onClose;
