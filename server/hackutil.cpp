@@ -440,6 +440,7 @@ menu_id get_current_menu_id()
             if (df::building *selected = df::global::world->selected_building)
             {
                 virtual_identity *building_id = virtual_identity::get(selected);
+                df::ui_sidebar_menus& sidebar = *df::global::ui_sidebar_menus;
                 if (building_id == &df::building_trapst::_identity)
                 {
                     df::building_trapst* trap = (df::building_trapst*)selected;
@@ -450,7 +451,6 @@ menu_id get_current_menu_id()
                             // lever target
                             if (df::global::ui_lever_target_type)
                             {
-                                df::ui_sidebar_menus& sidebar = *df::global::ui_sidebar_menus;
                                 focus += "/target";
                                 if (*df::global::ui_lever_target_type != df::lever_target_type::NONE)
                                 {
@@ -463,13 +463,20 @@ menu_id get_current_menu_id()
                 // workshop subscreen information
                 else if (endsWith(focus, "/AddJob"))
                 {
-                    df::ui_sidebar_menus& sidebar = *df::global::ui_sidebar_menus;
                     focus += " query-info: "
                         + std::to_string(sidebar.workshop_job.mat_type) + " "
                         + std::to_string(sidebar.workshop_job.category_id) + " "
                         + std::to_string(sidebar.workshop_job.mat_index) + " "
                         + std::to_string(sidebar.workshop_job.material_category.whole) + " "
                         + std::to_string(sidebar.building.category_id);
+                }
+                if (sidebar.location.in_create)
+                {
+                    focus += "/location/create";
+                }
+                if (sidebar.location.in_choose_deity)
+                {
+                    focus += "/select-deity";
                 }
             }
         }
