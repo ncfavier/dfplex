@@ -16,6 +16,7 @@
 #include "df/invasion_info.h"
 #include "df/squad.h"
 #include "df/ui_sidebar_menus.h"
+#include "df/ui_sidebar_mode.h"
 #include "df/ui.h"
 #include "df/unit.h"
 #include "df/item.h"
@@ -431,16 +432,19 @@ menu_id get_current_menu_id()
         focus = replace_all(focus, "/Job", "/Empty");
     }
     
+    const df::enums::ui_sidebar_mode::ui_sidebar_mode LOCATIONS
+    = static_cast<df::enums::ui_sidebar_mode::ui_sidebar_mode>((uint32_t)df::enums::ui_sidebar_mode::ArenaTrees + 1);
+    
     // append some submenu IDs
     if (id == &df::viewscreen_dwarfmodest::_identity)
     {
         df::viewscreen_dwarfmodest* vs_dwarf = static_cast<df::viewscreen_dwarfmodest*>(vs);
         if (df::global::ui->main.mode == df::enums::ui_sidebar_mode::QueryBuilding)
         {
+            df::ui_sidebar_menus& sidebar = *df::global::ui_sidebar_menus;
             if (df::building *selected = df::global::world->selected_building)
             {
                 virtual_identity *building_id = virtual_identity::get(selected);
-                df::ui_sidebar_menus& sidebar = *df::global::ui_sidebar_menus;
                 if (building_id == &df::building_trapst::_identity)
                 {
                     df::building_trapst* trap = (df::building_trapst*)selected;
@@ -470,14 +474,18 @@ menu_id get_current_menu_id()
                         + std::to_string(sidebar.workshop_job.material_category.whole) + " "
                         + std::to_string(sidebar.building.category_id);
                 }
-                if (sidebar.location.in_create)
-                {
-                    focus += "/location/create";
-                }
-                if (sidebar.location.in_choose_deity)
-                {
-                    focus += "/select-deity";
-                }
+            }
+        } 
+        else if (df::global::ui->main.mode == LOCATIONS)
+        {
+            df::ui_sidebar_menus& sidebar = *df::global::ui_sidebar_menus;
+            if (sidebar.location.in_create)
+            {
+                focus += "/location/create";
+            }
+            if (sidebar.location.in_choose_deity)
+            {
+                focus += "/select-deity";
             }
         }
         else if (df::global::ui->main.mode == df::enums::ui_sidebar_mode::Zones)

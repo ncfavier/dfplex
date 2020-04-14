@@ -395,6 +395,8 @@ static void restore_data(Client* client)
     df::global::ui_sidebar_menus->designation.marker_only = ui.m_designate_marker;
     df::global::ui_sidebar_menus->designation.priority_set = ui.m_designate_priority_set;
     df::global::ui_sidebar_menus->designation.priority = ui.m_designate_priority;
+    df::global::ui_sidebar_menus->location.in_create = false;
+    df::global::ui_sidebar_menus->location.in_choose_deity = false;
 }
 
 // restores some state that comes after the keyqueue
