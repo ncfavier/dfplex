@@ -371,6 +371,12 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
                 }
             }
             break;
+        case df::ui_sidebar_mode::Hauling:
+            {
+                // renaming doesn't need storing here.
+                UNSTORE_TEXTENTRY();
+            }
+            break;
         case df::ui_sidebar_mode::Build:
             if (contains(keys, SELECT))
             {
@@ -415,6 +421,7 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
                         || _key == HOTKEY_BUILDING_MACHINE
                         || _key == HOTKEY_BUILDING_SIEGEENGINE
                         || _key == HOTKEY_BUILDING_FURNACE
+                        || _key == HOTKEY_BUILDING_CONSTRUCTION_TRACK
                     )
                     {
                         _catch = true;
@@ -671,16 +678,21 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
     }
     else if (
         id == &df::viewscreen_civlistst::_identity
-        || id == &df::viewscreen_layer_noblelistst::_identity
-        || id == &df::viewscreen_textviewerst::_identity
-        || id == &df::viewscreen_buildinglistst::_identity
-        || id == &df::viewscreen_tradelistst::_identity
-        || id == &df::viewscreen_petitionsst::_identity
-        || id == &df::viewscreen_treasurelistst::_identity
-        )
-    {
-        // tbh this is only needed for civlist
+    ) {
         STORE_CURSORSCROLL();
+        
+        df::viewscreen_civlistst* vs_civ = static_cast<df::viewscreen_civlistst*>(vs);
+        for (const auto& _key : inkeys)
+        {
+            // apply but don't store the mission launch.
+            // then switch to missions screen.
+            if (_key == CIV_RESCUE || _key == CIV_RECOVER || _key == CIV_RAID)
+            {
+                vs->feed_key(_key);
+                keys.erase(_key);
+                savekeys.insert(CIV_MISSIONS);
+            }
+        }
     }
     else if (
         id == &df::viewscreen_announcelistst::_identity

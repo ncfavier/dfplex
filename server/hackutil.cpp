@@ -501,6 +501,24 @@ menu_id get_current_menu_id()
                 //focus += "/" + enum_item_key(zone.mode);
             }
         }
+        else if (df::global::ui->main.mode == df::enums::ui_sidebar_mode::Hauling)
+        {
+            // completely redone this string because the default breaks the requirements too much.
+            focus = "dwarfmode/Hauling";
+            if (df::global::ui->hauling.in_assign_vehicle)
+            {
+                focus += "/AssignVehicle";
+            }
+            else
+            {
+                if (df::global::ui->hauling.in_name)
+                    focus += "/Rename";
+                else if (df::global::ui->hauling.in_stop)
+                    focus += "/DefineStop";
+                else
+                    focus += "/Select";
+            }
+        }
         else if (df::global::ui->main.mode == df::enums::ui_sidebar_mode::ViewUnits)
         {
             if (df::global::ui_selected_unit)

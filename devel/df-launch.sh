@@ -27,7 +27,7 @@ then
     exit 1
 fi
 
-export DFPLEX_STATICPORT="1233"
+export DFPLEX_STATICPORT="8000"
 export DFPLEX_STATICDIR="../static"
 
 cd $dfdir

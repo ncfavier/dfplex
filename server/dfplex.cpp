@@ -609,6 +609,7 @@ void on_report(color_ostream &out, void* v)
                     client->ui.m_viewcoord_set = true;
                     // go to coord - map dimensions/2 to center.
                     client->ui.m_viewcoord = report->pos - Coord{ (dims.map_x2 - dims.map_x1) / 2, (dims.map_y2 - dims.map_y1) / 2, 0};
+                    client->ui.m_viewcoord.z = report->pos.z; // why is this needed?
                     if (client->ui.m_viewcoord.x < 0) client->ui.m_viewcoord.x = 0;
                     if (client->ui.m_viewcoord.y < 0) client->ui.m_viewcoord.y = 0;
                     client->ui.m_stored_camera_return = true;

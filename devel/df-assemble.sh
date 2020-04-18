@@ -163,11 +163,9 @@ sed -i 's/MACRO_MS:[0-9]*/MACRO_MS:0/g' $dfdir/data/init/init.txt
 # disable sound for development convenience
 sed -i 's/SOUND:\(YES\|NO\)/SOUND:NO/g' $dfdir/data/init/init.txt
 # autosave
-sed -i 's/AUTOSAVE:NONE/AUTOSAVE:SEASONAL/g' $dfdir/data/init/init.txt
-# autosave
-sed -i 's/AUTOSAVE:NONE/AUTOSAVE:SEASONAL/g' $dfdir/data/init/init.txt
+sed -i 's/AUTOSAVE:NONE/AUTOSAVE:SEASONAL/g' $dfdir/data/init/d_init.txt
 # engravings
-sed -i 's/ENGRAVINGS_START_OBSCURED:NO/ENGRAVINGS_START_OBSCURED:YES/g' $dfdir/data/init/init.txt
+sed -i 's/ENGRAVINGS_START_OBSCURED:NO/ENGRAVINGS_START_OBSCURED:YES/g' $dfdir/data/init/d_init.txt
 
 # announcement edits for more harmonious multiplayer
 sed -i 's/BIRTH_CITIZEN:A_D:D_D:P:R/BIRTH_CITIZEN:A_D:D_D/g' $dfdir/data/init/announcements.txt
