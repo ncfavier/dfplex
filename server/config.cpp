@@ -10,7 +10,7 @@ uint32_t MAX_CLIENTS = 0;
 uint16_t PORT = 1234;
 uint16_t STATICPORT = 8000;
 std::string STATICDIR = "hack/www";
-uint32_t UNIPLEXKEY = 0;
+uint32_t MULTIPLEXKEY = 0;
 uint32_t NEXT_CLIENT_POS_KEY = 0;
 uint32_t PREV_CLIENT_POS_KEY = 0;
 bool CURSOR_IS_TEXT = false;
@@ -97,8 +97,8 @@ bool load_text_file()
         {
            SERVERDEBUGKEY = std::stol(val);
         }
-        if (key == "UNIPLEXKEY") {
-            UNIPLEXKEY = std::stol(val);
+        if (key == "MULTIPLEXKEY") {
+            MULTIPLEXKEY = std::stol(val);
 		}
 	}
 	return true;

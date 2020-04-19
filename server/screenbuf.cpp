@@ -279,9 +279,9 @@ void modify_screenbuf(Client* cl)
                 {
                 case 0:
                     // uniplex
-                    if (UNIPLEXKEY)
+                    if (MULTIPLEXKEY)
                     {
-                        std::string keystr = key_display_name(UNIPLEXKEY);
+                        std::string keystr = key_display_name(MULTIPLEXKEY);
                         write_to_screen(x, y, keystr, 4, 0, 1);
                         
                         write_to_screen(x + keystr.length(), y, 

@@ -121,7 +121,7 @@ bool is_paused()
 void apply_key(const KeyEvent& match, Client* cl, bool raw)
 {
     // special keys
-    if (UNIPLEXKEY != 0 && (match.type == type_unicode || match.type == type_key) && match.unicode == UNIPLEXKEY)
+    if (MULTIPLEXKEY != 0 && (match.type == type_unicode || match.type == type_key) && match.unicode == MULTIPLEXKEY)
     {
         // enter uniplex mode.
         if (uniplexing_requested)

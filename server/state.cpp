@@ -61,6 +61,7 @@
 #include "df/viewscreen_optionst.h"
 #include "df/viewscreen_reportlistst.h"
 #include "df/viewscreen_textviewerst.h"
+#include "df/viewscreen_tradelistst.h"
 #include "df/viewscreen_titlest.h"
 #include "df/viewscreen_unitst.h"
 #include "df/viewscreen.h"
@@ -491,6 +492,24 @@ fail:
     return true;
 }
 
+bool tradelist_advance(Client* client)
+{
+    df::viewscreen* vs;
+    virtual_identity* id;
+    UPDATE_VS(vs, id);
+    if (id == &df::viewscreen_tradelistst::_identity)
+    {
+        // apply this 32 times for paranoia.
+        for (size_t i = 0; i < 32; ++i)
+        {
+            vs->logic();
+            UPDATE_VS(vs, id);
+        }
+        return true;
+    }
+    return false;
+}
+
 // restores state for client
 // -- preconditions --
 // must be in the dfmode root menu.
@@ -648,6 +667,15 @@ RestoreResult restore_state(Client* client)
                     return RestoreResult::FAIL;
                 }
             }
+        }
+        
+        // tradelist immediately advances to a new screen
+        // ometimes, so we must simulate that.
+        if (tradelist_advance(client))
+        {
+            UPDATE_VS(vs, id);
+            //vs->feed_key(df::enums::interface_key::STANDARDSCROLL_DOWN);
+            //*_out << "advanced to " << get_current_menu_id() << std::endl;
         }
         
         ui.m_restore_progress++;

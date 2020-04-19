@@ -18,8 +18,8 @@ Zero means unbounded.
 Enable autosave while nobody is playing. You probably shouldn't use this yet.
 [AUTOSAVE_WHILE_IDLE:NO]
 
-This key enters uniplex mode.
-[UNIPLEXKEY:92]
+This key toggles multiplex mode.
+[MULTIPLEXKEY:92]
 
 This key toggles client's debug output
 [DEBUGKEY:124]
