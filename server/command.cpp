@@ -157,6 +157,21 @@ for (const auto& _key : inkeys) \
     } \
 }
 
+#define ZOOM_UNIT_ON(keyname) \
+if (contains(keys, UNITJOB_ZOOM_CRE)) \
+{ \
+    keys.clear(); \
+    vs->feed_key(UNITJOB_ZOOM_CRE); \
+    ui.m_restore_keys.clear(); \
+    ui.m_restore_keys.emplace_back(); \
+    ui.m_restore_keys.back().m_interface_keys = { D_VIEWUNIT }; \
+    ui.m_restore_keys.back().m_restore_unit_view_state = true; \
+    ui.m_viewcycle = 0; \
+    suppress_sidebar_refresh = true; \
+    post_restore_cursor = true; \
+    blockcatch = true; \
+} \
+
 // applies and saves a key.
 static void apply_key(Client* cl, df::interface_key key)
 {
@@ -675,6 +690,18 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
                 }
             }
         }
+    }
+    else if (
+        id == &df::viewscreen_unitlistst::_identity
+    )
+    {
+        ZOOM_UNIT_ON(UNITJOB_ZOOM_CRE);
+    }
+    else if (
+        id == &df::viewscreen_layer_unit_relationshipst::_identity
+    )
+    {
+        ZOOM_UNIT_ON(UNITVIEW_RELATIONSHIPS_ZOOM);
     }
     else if (
         id == &df::viewscreen_civlistst::_identity

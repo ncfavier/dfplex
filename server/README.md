@@ -7,4 +7,4 @@ environment variables. The variables it looks for are:
 | var              | description                                                                          |
 |------------------|--------------------------------------------------------------------------------------|
 | `WF_PORT`        | The port number webfort listens on. default: 1234                                    |
-| `WF_MAX_CLIENTS` | The number of connections that can be opened at any one time. default: 32.           |
+| `WF_MAX_CLIENTS` | The number of connections that can be opened at any one time. default: 0 (meaning unbounded).           |

@@ -81,6 +81,21 @@ ClientTile& screentile(int x, int y)
     return screenbuf[index];
 }
 
+void write_to_screen(int x, int y, std::string s, uint8_t fg=7, uint8_t bg=0, bool bold=true)
+{
+    for (size_t i = 0; i < s.length(); ++i)
+    {
+        if (x + i < gps->dimx && y < gps->dimy)
+        {
+            ClientTile& tile = screentile(x + i, y);
+            tile.pen.ch = s.at(i);
+            tile.pen.bold = bold;
+            tile.pen.bg = bg;
+            tile.pen.fg = fg;
+        }
+    }
+}
+
 inline bool on_screen(const Coord& c)
 {
     return c.z == 0 && c.x >= 0 && c.y >= 0 && c.x < gps->dimx && c.y < gps->dimy;
@@ -216,17 +231,120 @@ static void set_status()
     header_status.emplace_back(64, std::string(5, (char)219));
 }
 
+std::string key_display_name(int32_t key)
+{
+    if (key == ' ')
+    {
+        return "Space";
+    }
+    if (key >= 0x20 && key < 0x7f)
+    {
+        return std::string(1, static_cast<char>(key));
+    }
+    else
+    {
+        return "?";
+    }
+}
+
 void modify_screenbuf(Client* cl)
 {
-    // modifications only occur in multiplex mode.
-    if (!plexing) return;
+    // modifications only occur in dwarfmode
+    if (!is_dwarf_mode()) return;
     
     if (gps->dimx < 2 || gps->dimy < 2) return;
     
     df::viewscreen* vs;
     virtual_identity* id;
     UPDATE_VS(vs, id);
+    
+    DFHack::Gui::DwarfmodeDims dims = Gui::getDwarfmodeViewDims();
+    
+    // menu options (custom keys)
+    if (id == &df::viewscreen_dwarfmodest::_identity &&
+        df::global::ui->main.mode == df::enums::ui_sidebar_mode::Default)
+    {
+        if (dims.menu_on)
+        {
+            const int menu_additions_x = dims.menu_x1 + 1;
+            const int menu_additions_y = dims.y1 + 22;
+            // amount of space
+            
+            const int ymax = gps->dimy - 2;
+            int x = menu_additions_x;
+            int y = menu_additions_y + 1;
+            for (int32_t i = 0; i < 4 && y < ymax; ++i)
+            {
+                switch (i)
+                {
+                case 0:
+                    // uniplex
+                    if (UNIPLEXKEY)
+                    {
+                        std::string keystr = key_display_name(UNIPLEXKEY);
+                        write_to_screen(x, y, keystr, 4, 0, 1);
+                        
+                        write_to_screen(x + keystr.length(), y, 
+                            (plexing)
+                                ? ": Disable Multiplex"
+                                : ": Enable Multiplex",
+                            7, 0, 0
+                        );
+                        
+                        ++y;
+                    }
+                    break;
+                case 1:
+                    // debug view key
+                    if (!plexing) break;
+                    if (DEBUGKEY)
+                    {
+                        std::string keystr = key_display_name(DEBUGKEY);
+                        write_to_screen(x, y, keystr, 4, 0, 1);
+                        
+                        write_to_screen(
+                            x + keystr.length(), y, 
+                            ": Debug Info",
+                            7, 0, 0
+                        );
+                        
+                        ++y;
+                    }
+                    break;
+                case 2:
+                    // camera switch
+                    if (!plexing) break;
+                    if (NEXT_CLIENT_POS_KEY || PREV_CLIENT_POS_KEY)
+                    {
+                        std::string s = "";
+                        if (PREV_CLIENT_POS_KEY)
+                        {
+                            s += key_display_name(PREV_CLIENT_POS_KEY);
+                        }
+                        if (NEXT_CLIENT_POS_KEY)
+                        {
+                            s += key_display_name(NEXT_CLIENT_POS_KEY);
+                        }
+                    
+                        write_to_screen(x, y, s, 4, 0, 1);
+                        
+                        write_to_screen(x + s.length(), y, 
+                            ": Cycle Zoom To Client",
+                            7, 0, 0
+                        );
+                        
+                        ++y;
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    
+    // remaining modifications only occur in multiplex mode.
+    if (!plexing) return;
 
+    // header edit.
 	size_t header_index = 0;
 	for (auto& pair : header_status)
 	{

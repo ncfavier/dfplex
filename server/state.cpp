@@ -199,7 +199,8 @@ bool menu_id_matches(const menu_id& a, const menu_id& b)
     return false;
 }
 
-static void restore_unit_view_state(Client* client)
+// returns false on error.
+static bool restore_unit_view_state(Client* client)
 {
     using namespace df::enums::interface_key;
     
@@ -226,7 +227,6 @@ static void restore_unit_view_state(Client* client)
         vs->feed_key(UNITVIEW_NEXT);
         int32_t unit_sel_start = *df::global::ui_selected_unit;
         bool success;
-        (void)success;
         while (true)
         {
             vs->feed_key(UNITVIEW_NEXT);
@@ -250,6 +250,7 @@ static void restore_unit_view_state(Client* client)
             // return to the stored cursor position.
             restore_cursor(client);
             Gui::refreshSidebar();
+            return false;
         }
         else
         {
@@ -276,8 +277,10 @@ static void restore_unit_view_state(Client* client)
                     vs->feed_key(SECONDSCROLL_DOWN);
                 }
             }
+            return true;
         }
     }
+    return false;
 }
 
 static void restore_squads_state(Client* client)
@@ -590,8 +593,6 @@ RestoreResult restore_state(Client* client)
         {
             if (rkey.m_observed_menu != menu_id || rkey.m_observed_menu_depth != menu_depth)
             {
-                rkey.m_observed_menu = menu_id;
-                rkey.m_observed_menu_depth = menu_depth;
                 goto stack_error;
             }
         }
@@ -619,12 +620,16 @@ RestoreResult restore_state(Client* client)
                 else if (rkey.m_blockcatch)
                 {
                     restore_state_error = "Expected observed " + rkey.m_observed_menu + " +" + std::to_string(rkey.m_observed_menu_depth);
+                    rkey.m_observed_menu = menu_id;
+                    rkey.m_observed_menu_depth = menu_depth;
                 }
                 else
                 {
                     restore_state_error = "Unkown reason";
                 }
+                
                 restore_state_error += "; arrived at " + menu_id + " +" + std::to_string(menu_depth);
+            
                 restore_state_error += "\n" + ui.debug_trace();
                 restore_state_error += "\n(erasing from " + std::to_string(rkey.m_check_start) + " on)\n";
                 
@@ -723,32 +728,35 @@ void capture_post_state(Client* client)
     ui.m_show_combat = df::global::ui_sidebar_menus->show_combat;
     ui.m_show_labor = df::global::ui_sidebar_menus->show_labor;
     ui.m_show_misc = df::global::ui_sidebar_menus->show_misc;
-    ui.m_view_unit = -1;
-    ui.m_view_unit_labor_scroll = 0;
-    ui.m_view_unit_labor_submenu = -1;
-    if (id == &df::viewscreen_dwarfmodest::_identity
-        && df::global::ui->main.mode == df::ui_sidebar_mode::ViewUnits)
+    if (id == &df::viewscreen_dwarfmodest::_identity)
     {
-        if (df::global::ui_selected_unit)
+        ui.m_view_unit = -1;
+        ui.m_view_unit_labor_scroll = 0;
+        ui.m_view_unit_labor_submenu = -1;
+        if (id == &df::viewscreen_dwarfmodest::_identity
+            && df::global::ui->main.mode == df::ui_sidebar_mode::ViewUnits)
         {
-            int32_t selected_unit = *df::global::ui_selected_unit;
-            if (df::unit* unit = vector_get(world->units.active, selected_unit))
+            if (df::global::ui_selected_unit)
             {
-                ui.m_view_unit = unit->id;
+                int32_t selected_unit = *df::global::ui_selected_unit;
+                if (df::unit* unit = vector_get(world->units.active, selected_unit))
+                {
+                    ui.m_view_unit = unit->id;
+                }
             }
-        }
-        if (df::global::ui_unit_view_mode && df::global::ui_unit_view_mode->value == df::ui_unit_view_mode::PrefLabor)
-        {
-            df::viewscreen_dwarfmodest* vs_dwarf = static_cast<df::viewscreen_dwarfmodest*>(vs);
-            
-            ui.m_view_unit_labor_scroll = *df::global::ui_look_cursor;
-            if (vs_dwarf->sideSubmenu)
+            if (df::global::ui_unit_view_mode && df::global::ui_unit_view_mode->value == df::ui_unit_view_mode::PrefLabor)
             {
-                ui.m_view_unit_labor_submenu = vs_dwarf->unit_labors_sidemenu_uplevel_idx;
-            }
-            else
-            {
-                ui.m_view_unit_labor_submenu = -1;
+                df::viewscreen_dwarfmodest* vs_dwarf = static_cast<df::viewscreen_dwarfmodest*>(vs);
+                
+                ui.m_view_unit_labor_scroll = *df::global::ui_look_cursor;
+                if (vs_dwarf->sideSubmenu)
+                {
+                    ui.m_view_unit_labor_submenu = vs_dwarf->unit_labors_sidemenu_uplevel_idx;
+                }
+                else
+                {
+                    ui.m_view_unit_labor_submenu = -1;
+                }
             }
         }
     }

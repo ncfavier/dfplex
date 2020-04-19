@@ -12,7 +12,8 @@ The port the server's websocket will listen on. Don't forget to forward your por
 [PORT:1234]
 
 The max number of concurrent connections that the server will accept.
-[MAX_CLIENTS:32]
+Zero means unbounded.
+[MAX_CLIENTS:0]
 
 Enable autosave while nobody is playing. You probably shouldn't use this yet.
 [AUTOSAVE_WHILE_IDLE:NO]

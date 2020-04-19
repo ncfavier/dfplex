@@ -188,7 +188,7 @@ void on_open(server* s, conn_hdl hdl)
         return;
     }
 
-    if (clients.size() >= MAX_CLIENTS) {
+    if (clients.size() >= MAX_CLIENTS && MAX_CLIENTS != 0) {
         s->close(hdl, 4001, "Server is full.");
         return;
     }

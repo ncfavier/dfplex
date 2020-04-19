@@ -6,7 +6,7 @@
 #include "config.hpp"
 
 bool AUTOSAVE_WHILE_IDLE = 0;
-uint32_t MAX_CLIENTS = 32;
+uint32_t MAX_CLIENTS = 0;
 uint16_t PORT = 1234;
 uint16_t STATICPORT = 8000;
 std::string STATICDIR = "hack/www";
