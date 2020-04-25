@@ -8,8 +8,9 @@
  * string.
  */
 
+// note that host and port are edited by config-srv, which is
+// dynamically-generated.
 var config = {
-	host: "localhost",
 	port: '1234',
 	tiles: "Phoebus.png",
 	text: "ShizzleClean.png",

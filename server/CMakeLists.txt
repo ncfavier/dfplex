@@ -84,12 +84,11 @@ endif()
 # websocketpp
 include_directories(websocketpp)
 
-# mongoose
-include_directories(mongoose-cpp)
-add_subdirectory(mongoose-cpp)
+# cpp-httplib
+include_directories(cpp-httplib)
 
 if (isPlugin)
-	DFHACK_PLUGIN(dfplex ${SRC} LINK_LIBRARIES SDL dfhack-tinythread mongoose ${PROJECT_LIBS})
+	DFHACK_PLUGIN(dfplex ${SRC} LINK_LIBRARIES SDL dfhack-tinythread ${PROJECT_LIBS})
 	target_link_libraries(dfplex ${Boost_LIBRARIES} SDL)
 	INSTALL(DIRECTORY ../dist/shared/ DESTINATION .)
 	INSTALL(DIRECTORY ../static/ DESTINATION ./hack/www)
@@ -112,7 +111,7 @@ else()
 	)
 
 	add_library(dfplex.plug SHARED ${SRC})
-	target_link_libraries(dfplex.plug mongoose ${PROJECT_LIBS})
+	target_link_libraries(dfplex.plug ${PROJECT_LIBS})
 	# Installing
 	install(TARGETS dfplex.plug
 		RUNTIME DESTINATION ${DF_ROOT}/hack/plugins

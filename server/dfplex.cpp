@@ -100,7 +100,6 @@ static void dfplex_update();
 // or if the global state is paused.
 //
 // NOTE: this function ignores the value of df's pause variable
-//       and global::debug_nopause (NOPAUSE)
 bool is_paused()
 {
     if (global_pause) return true;
@@ -565,14 +564,6 @@ void dfplex_update()
             vs->feed_key(df::enums::interface_key::D_ONESTEP);
         }
         single_step_requested = false;
-        
-        if (NOPAUSE)
-        {
-            // update nopause status to match global pause.
-            #ifdef DFPLEX_ENABLE_NOPAUSE
-            *df::global::debug_nopause = !global_pause;
-            #endif
-        }
     }
     
     frames_elapsed++;

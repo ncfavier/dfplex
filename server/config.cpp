@@ -70,9 +70,6 @@ bool load_text_file()
 		if (key == "MAX_CLIENTS") {
 			MAX_CLIENTS = (uint32_t)std::stol(val);
 		}
-		if (key == "AUTOSAVE_WHILE_IDLE") {
-			AUTOSAVE_WHILE_IDLE = val == "YES";
-		}
 		if (key == "NOPAUSE")
         {
 		    NOPAUSE = std::stol(val);
@@ -115,9 +112,6 @@ bool load_env_vars()
 	}
 	if ((tmp = getenv("DFPLEX_MAX_CLIENTS"))) {
 		MAX_CLIENTS = (uint32_t)std::stol(tmp);
-	}
-	if ((tmp = getenv("DFPLEX_AUTOSAVE"))) {
-		AUTOSAVE_WHILE_IDLE = std::stol(tmp) != 0;
 	}
 	if ((tmp = getenv("DFPLEX_SECRET"))) {
 		SECRET = tmp;

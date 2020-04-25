@@ -28,7 +28,6 @@ var colors = [
 
 var MAX_FPS = 20;
 
-var host = params.host;
 var port = params.port;
 var tileSet = params.tiles;
 var textSet = params.text;
@@ -37,7 +36,7 @@ var colorscheme = params.colors;
 var nick = params.nick;
 var secret = params.secret;
 
-var wsUri = 'ws://' + host + ':' + port +
+var wsUri = 'ws://' + location.hostname + ':' + port +
 	'/' + encodeURIComponent(nick) +
 	'/' + encodeURIComponent(secret);
 console.log(wsUri);

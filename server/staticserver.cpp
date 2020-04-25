@@ -11,23 +11,41 @@
 #include "Console.h"
 #include "Core.h"
 
-#include <mongoose/Server.h>
-#include <mongoose/WebController.h>
+#include <httplib.h>
 
-using namespace Mongoose; 
+using namespace DFHack;
 
 void init_static(void*)
 {
-    WebController c;
-    Server server(STATICPORT, STATICDIR.c_str());
-    server.registerController(&c);
+    using namespace httplib;
 
-    server.start();
-    *_out << "[DFPLEX] Static site server started on port " << STATICPORT << endl;
-    *_out << "[DFPLEX] Connect to http://localhost:" << STATICPORT << "/dfplex.html in your browser." << endl;
+    Server svr;
+    //Server server(STATICPORT, STATICDIR.c_str());
     
-    while (1) {
-        DFHack::Core::getInstance().getConsole().msleep(60);
+    auto ret = svr.set_mount_point("/", STATICDIR.c_str());
+    svr.Get("/", [](const Request& req, Response& res) {
+        res.set_redirect("dfplex.html");
+    });
+    
+    svr.Get("/config-srv.js", [](const Request& req, Response& res) {
+        std::stringstream ss;
+        ss << "// This file is dynamically generated.\n";
+        ss << "config.port = '" << PORT << "';\n";
+        res.set_content(ss.str().c_str(), "application/javascript");
+    });
+    
+    if (!ret)
+    {
+        _out->color(COLOR_RED);
+        *_out << "[DFPLEX] Failed to serve static site files from \"" << STATICDIR.c_str()
+        << "\"" << std::endl;
+        _out->color(COLOR_RESET);
     }
-
+    else
+    {
+        *_out << "[DFPLEX] Static site server starting on port " << STATICPORT << endl;
+        *_out << "[DFPLEX] Serving files from directory " << STATICDIR << endl;
+        *_out << "[DFPLEX] Connect to http://localhost:" << STATICPORT << "/dfplex.html in your browser." << endl;
+        svr.listen("0.0.0.0", STATICPORT);
+    }
 }

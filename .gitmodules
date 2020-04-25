@@ -1,6 +1,6 @@
 [submodule "server/websocketpp"]
 	path = server/websocketpp
 	url = https://github.com/zaphoyd/websocketpp.git
-[submodule "server/mongoose-cpp"]
-	path = server/mongoose-cpp
-	url = https://github.com/Gregwar/mongoose-cpp
+[submodule "server/cpp-httplib"]
+	path = server/cpp-httplib
+	url = https://github.com/yhirose/cpp-httplib
