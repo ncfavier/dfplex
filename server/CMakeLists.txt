@@ -58,16 +58,9 @@ else(UNIX)
 		message("Dependencies downloaded :)")
 	endif()
 
-	set(SDL_DIR ${WFDIR}/SDL)
-	set(CMAKE_PREFIX_PATH ${SDL_DIR})
 	set(BOOST_ROOT ${WFDIR}/boost)
 	link_directories(${BOOST_ROOT}/lib) # Boost doesn't find everything
 endif(UNIX)
-
-# SDL Headers
-find_package(SDL 1.2 REQUIRED)
-include_directories(${SDL_INCLUDE_DIRS})
-
 # Boost/Asio
 set(Boost_FIND_REQUIRED TRUE)
 set(Boost_USE_STATIC_LIBS OFF)
@@ -88,8 +81,8 @@ include_directories(websocketpp)
 include_directories(cpp-httplib)
 
 if (isPlugin)
-	DFHACK_PLUGIN(dfplex ${SRC} LINK_LIBRARIES SDL dfhack-tinythread ${PROJECT_LIBS})
-	target_link_libraries(dfplex ${Boost_LIBRARIES} SDL)
+	DFHACK_PLUGIN(dfplex ${SRC} LINK_LIBRARIES dfhack-tinythread ${PROJECT_LIBS})
+	target_link_libraries(dfplex ${Boost_LIBRARIES})
 	INSTALL(DIRECTORY ../dist/shared/ DESTINATION .)
 	INSTALL(DIRECTORY ../static/ DESTINATION ./hack/www)
 else()
