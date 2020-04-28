@@ -1,49 +1,33 @@
-## Web Fortress ##
+## DFPlex ##
 
-Web Fortress is a [DFHack](http://github.com/dfhack/dfhack) plugin that
-exposes the rendering and input of a game of
-[Dwarf Fortress](http://bay12games.com) over a websocket, and an HTML5
-client that allows player to join in a shared game over their browsers.
+*"Why must the cancer of multiplayer afflict everything?"* -- [/u/JesterHell](https://www.reddit.com/r/dwarffortress/comments/g8trnf/multiplayer_dwarf_fortress_is_now_a_reality/foptfyn/)
 
-It is a fork of the [Text Will Be Text](https://github.com/mifki/df-twbt) plugin, by Vitaly Pronkin, and can be used in its place.
+*"...could be the end of all games,"* -- [/u/r4nge](https://www.reddit.com/r/dwarffortress/comments/g8trnf/multiplayer_dwarf_fortress_is_now_a_reality/foqxr97/)
+
+DFPlex is a plugin for [DFHack](https://github.com/DFHack/dfhack) which brings simultaneous, real-time co-op multiplayer Fortress mode to [Dwarf Fortress](http://www.bay12games.com/dwarves/). Each player has their own independent view, cursor, menus, etc. so nobody has to wrestle for control. It's a fork of [Webfort](https://github.com/Ankoku/df-webfort), so players can join just by connecting from their web browser.
 
 ### Downloading ###
 
-This project manages dependencies through Git submodules. To clone the full
-tree:
+See the [releases page](https://github.com/white-rabbit-dfplex/dfplex/releases) for a pre-built option. To compile from source, you can use git:
 
-	git clone --recursive <the git repo>
+```
+git clone --recursive https://github.com/white-rabbit-dfplex/dfhack
+```
 
-Windows binaries are provided through [Github](https://github.com/Ankoku/df-webfort/releases).
-If you would like to recieve (likely buggy) prerelease builds, email
-<alloyed@tfwno.gf>.
+Then just follow the [compile instructions for dfhack](https://dfhack.readthedocs.io/en/stable/docs/Compile.html). Please take care to ensure that you install into the correct version of Dwarf Fortress. You can check which version DFHack is compatible with by looking at the `CMakeLists.txt` file in the DFHack repo.
 
-### Compiling ###
+### Launching DFPlex ###
 
-Web Fortress in known to compile with 32bit clang/gcc on linux, and VS2010 on
-Windows. See [COMPILING.md](COMPILING.md) for more.
+After installing DFPlex (along with DFHack), simply put the line `enable dfplex` in your `dfhack.init` file. Consider removing all other lines from that file, because dfplex is currently incompatible with many other plugins. Then simply connect to [http://localhost:8000/](http://localhost:8000/) in your web browser.
 
-### Installation ###
+#### Configuration ####
 
-Installation is documented in [INSTALLING.txt](INSTALLING.txt), which
-should come with your release of Web Fortress.
+Edit the file `data/init/dfplex.txt` to configure dfplex. If that file is missing, it can be found [here](dist/shared/data/init/dfplex.txt).
 
-### Authors and Links ###
+In addition, we suggest enabling seasonal autosave (in `data/init/d_init.txt`) and disabling pause/zoom for the certain common announcements (`data/init/announcements.txt`) by replacing their respective lines with these: `[BIRTH_CITIZEN:A_D:D_D]`, `[MOOD_BUILDING_CLAIMED:A_D:D_D]`, `[ARTIFACT_BEGUN:A_D:D_D]`.
 
-[Original Source](https://github.com/mifki/df-webfort) -- [Discussion](http://www.bay12forums.com/smf/index.php?topic=139167.0) -- [Report an Issue](https://github.com/Ankoku/df-webfort/issues)
+To customize the graphics, edit `hack/www/config.js`. Players can set their own graphics by editing the URL in their web browser -- [here is a guide](static/README.md) from the authors of Webfort.
 
-Copyright (c) 2014, Vitaly Pronkin <pronvit@me.com>
-Copyright (c) 2014, Kyle McLamb <alloyed@tfwno.gf>
-Copyright (c) 2020, white-rabbit
+#### Online Play ####
 
-Permission to use, copy, modify, and/or distribute this software for any
-purpose with or without fee is hereby granted, provided that the above
-copyright notice and this permission notice appear in all copies.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
-ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
-ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
-OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+DFPlex requires two ports to be available. They are both displayed in the dfplex window upon launching, and can be configured in `data/init/dfplex.txt`. To play on LAN, players can simply connect to your LAN IP address at the correct port: for example, [http://192.168.1.1:8000/](http://192.168.1.1:8000/). To play online (as opposed to on LAN), port forwarding must be enabled on your reuter. Enabling port forwarding and finding your LAN or WAN IP address are beyond the scope of this readme, so please look these up online if you are unfamiliar with the process.

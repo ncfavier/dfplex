@@ -11,6 +11,8 @@
 #include "Console.h"
 #include "Core.h"
 
+#define SO_REUSEPORT
+
 #include <httplib.h>
 
 using namespace DFHack;
