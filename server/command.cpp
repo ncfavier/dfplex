@@ -83,79 +83,40 @@ static bool try_shrink_keyqueue_to(Client*, size_t menu_depth, menu_id menu_id);
 
 #define SPECIAL_CASE(case) if (false) case:
 
+#define RUN_OVER_INKEYS(bottom, top, XX) \
+    do { \
+        for (const auto& _key : inkeys) \
+            if (_key >= (bottom) && _key <= (top)) { \
+                XX(_key); \
+            } \
+    } while (0)
+
 #define STORE_TEXTENTRY() \
-for (const auto& _key : inkeys) \
-{ \
-    if (_key >= STRING_A000 && _key <= STRING_A255) \
-    { \
-        savekeys.insert(_key); \
-    } \
-}
+    RUN_OVER_INKEYS(STRING_A000, STRING_A255, savekeys.insert)
 
 #define UNSTORE_TEXTENTRY() \
-for (const auto& _key : inkeys) \
-{ \
-    if (_key >= STRING_A000 && _key <= STRING_A255) \
-    { \
-        savekeys.erase(_key); \
-    } \
-}
+    RUN_OVER_INKEYS(STRING_A000, STRING_A255, savekeys.erase)
 
 #define STORE_SECONDSCROLL() \
-for (const auto& _key : inkeys) \
-{ \
-    if (_key >= SECONDSCROLL_UP && _key <= SECONDSCROLL_PAGEDOWN) \
-    { \
-        savekeys.insert(_key); \
-    } \
-}
+    RUN_OVER_INKEYS(SECONDSCROLL_UP, SECONDSCROLL_PAGEDOWN, savekeys.insert)
 
 #define UNSTORE_SECONDSCROLL() \
-for (const auto& _key : inkeys) \
-{ \
-    if (_key >= SECONDSCROLL_UP && _key <= SECONDSCROLL_PAGEDOWN) \
-    { \
-        savekeys.erase(_key); \
-    } \
-}
+    RUN_OVER_INKEYS(SECONDSCROLL_UP, SECONDSCROLL_PAGEDOWN, savekeys.erase)
 
 #define STORE_STANDARDSCROLL() \
-for (const auto& _key : inkeys) \
-{ \
-    if (_key >= STANDARDSCROLL_UP && _key <= STANDARDSCROLL_PAGEDOWN) \
-    { \
-        savekeys.insert(_key); \
-    } \
-}
+    RUN_OVER_INKEYS(STANDARDSCROLL_UP, STANDARDSCROLL_PAGEDOWN, savekeys.insert)
 
 #define UNSTORE_STANDARDSCROLL() \
-for (const auto& _key : inkeys) \
-{ \
-    if (_key >= STANDARDSCROLL_UP && _key <= STANDARDSCROLL_PAGEDOWN) \
-    { \
-        savekeys.erase(_key); \
-    } \
-}
+    RUN_OVER_INKEYS(STANDARDSCROLL_UP, STANDARDSCROLL_PAGEDOWN, savekeys.erase)
 
 #define STORE_CURSORSCROLL() \
-for (const auto& _key : inkeys) \
-{ \
-    if (_key >= CURSOR_UP && _key <= CURSOR_DOWN_Z_AUX) \
-    { \
-        savekeys.insert(_key); \
-    } \
-}
+    RUN_OVER_INKEYS(CURSOR_UP, CURSOR_DOWN_Z_AUX, savekeys.insert)
 
+#define REMOVE_CURSORSCROLL_HELPER(_key) \
+    (keys.erase(_key), savekeys.eras(_key))
 
 #define REMOVE_CURSORSCROLL() \
-for (const auto& _key : inkeys) \
-{ \
-    if (_key >= CURSOR_UP && _key <= CURSOR_DOWN_Z_AUX) \
-    { \
-        keys.erase(_key); \
-        savekeys.erase(_key); \
-    } \
-}
+    RUN_OVER_INKEYS(CURSOR_UP, CURSOR_DOWN_Z_AUX, REMOVE_CURSORSCROLL_HELPER)
 
 #define ZOOM_UNIT_ON(keyname) \
 if (contains(keys, UNITJOB_ZOOM_CRE)) \
