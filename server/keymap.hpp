@@ -29,7 +29,7 @@ struct KeyEvent {
     SDL::Key key = SDL::K_UNKNOWN;
     uint8_t button = 0;
 
-    bool operator== (const KeyEvent &other) const {
+    static inline bool operator== (const KeyEvent &other) const {
         if (mod != other.mod) return false;
         if (type != other.type) return false;
         switch (type) {
@@ -40,7 +40,7 @@ struct KeyEvent {
         }
     }
 
-    bool operator< (const KeyEvent &other) const {
+    static inline bool operator< (const KeyEvent &other) const {
         if (mod != other.mod) return mod < other.mod;
         if (type != other.type) return type < other.type;
         switch (type) {
