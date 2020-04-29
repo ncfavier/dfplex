@@ -53,6 +53,7 @@ inline void quicksave(DFHack::color_ostream* out)
 }
 
 bool is_at_root();
+bool is_realtime_dwarf_menu(); // root menu or squads submenu
 bool return_to_root(); // error -> returns false
 
 // closes all viewscreens *if possible*

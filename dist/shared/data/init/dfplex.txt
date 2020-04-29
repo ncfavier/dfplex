@@ -3,12 +3,15 @@ This is the DFPlex config file, same syntax as DF raws.
 (Don't forget to forward your ports if you're not playing on LAN.)
 
 The port the static site will be served on. Players should connect to this port in their web browsers.
+If this is set to 0, the static site server will not start. (You can use this to help identify
+what the cause of a crash is, or to run your own static site server, e.g. `python -m SimpleHTTPServer`)
 [STATICPORT:8000]
 
 The directory containing static site files to be served.
 [STATICDIR:hack/www]
 
 The port the server's websocket will listen on. Don't forget to forward your ports.
+If this is set to 0, the websocket will not start. (You can use this to help identify what the cause of a crash is.)
 [PORT:1234]
 
 The max number of concurrent connections that the server will accept.
@@ -31,5 +34,14 @@ Zoom to next client position (from default view)
 [PREV_CLIENT_POS_KEY:91]
 [NEXT_CLIENT_POS_KEY:93]
 
+Pause behaviour:
+    ALWAYS: if any player enters a menu, the game will pause.
+    EXPLICIT: Players can only pause the game by pressing the pause key.
+    EXPLICIT_DWARFMENU: like "Explicit", but the pause button can be pressed
+        from any submenu in the main dwarfmode view that doesn't use the key.
+    EXPLICIT_ANYMENU: like "Explicit", but the pause button can be pressed
+        from *any* menu that doesn't use the key.
+[PAUSE:EXPLICIT]
+
+Display the cursor X as text?
 [CURSOR_IS_TEXT:1]
-[NOPAUSE:1]

@@ -912,7 +912,7 @@ void capture_post_state(Client* client)
     }
 
     // decide whether this ui position requires a pause.
-    if (is_at_root() || get_current_menu_id() == "dwarfmode/Squads")
+    if (is_realtime_dwarf_menu())
     {
         ui.m_pause_required = false;
     }
