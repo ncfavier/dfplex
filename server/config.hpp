@@ -10,6 +10,13 @@
 #include <vector>
 #include <string>
 
+enum class PauseBehaviour {
+    ALWAYS,
+    EXPLICIT,
+    EXPLICIT_DWARFMENU,
+    EXPLICIT_ANYMENU,
+};
+
 extern bool AUTOSAVE_WHILE_IDLE;
 extern uint32_t MAX_CLIENTS;
 extern uint16_t PORT;
@@ -21,8 +28,8 @@ extern uint32_t SERVERDEBUGKEY;
 extern uint32_t NEXT_CLIENT_POS_KEY;
 extern uint32_t PREV_CLIENT_POS_KEY;
 extern bool CURSOR_IS_TEXT;
-extern bool NOPAUSE;
 extern std::string SECRET;
+extern PauseBehaviour PAUSE_BEHAVIOUR;
 
 bool load_config();
 std::vector<std::string> split(const char *str, char c = ' ');

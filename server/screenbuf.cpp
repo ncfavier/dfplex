@@ -213,7 +213,7 @@ static void set_status()
     	}
         header_status.emplace_back(col,"*PAUSED*");
     }
-    else if (is_paused() && !NOPAUSE)
+    else if (is_paused() && !global_pause)
     {
 	    uint8_t col = 64 | (6 << 3) | 6;
         if (siege)

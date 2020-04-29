@@ -14,7 +14,7 @@ uint32_t MULTIPLEXKEY = 0;
 uint32_t NEXT_CLIENT_POS_KEY = 0;
 uint32_t PREV_CLIENT_POS_KEY = 0;
 bool CURSOR_IS_TEXT = false;
-bool NOPAUSE = false;
+PauseBehaviour PAUSE_BEHAVIOUR = PauseBehaviour::EXPLICIT;
 uint32_t DEBUGKEY = 0;
 uint32_t SERVERDEBUGKEY = 0;
 std::string SECRET = ""; // auth is disabled by default
@@ -65,14 +65,34 @@ bool load_text_file()
 			PORT = (uint16_t)std::stol(val);
 		}
         if (key == "STATICPORT") {
-			PORT = (uint16_t)std::stol(val);
+			STATICPORT = (uint16_t)std::stol(val);
 		}
 		if (key == "MAX_CLIENTS") {
 			MAX_CLIENTS = (uint32_t)std::stol(val);
 		}
-		if (key == "NOPAUSE")
+		if (key == "PAUSE_BEHAVIOUR" || key == "PAUSE")
         {
-		    NOPAUSE = std::stol(val);
+		    if (val == "ALWAYS")
+            {
+                PAUSE_BEHAVIOUR = PauseBehaviour::ALWAYS;
+            }
+            else if (val == "EXPLICIT")
+            {
+                PAUSE_BEHAVIOUR = PauseBehaviour::EXPLICIT;
+            }
+            else if (val == "DWARFMENU" || val == "EXPLICIT_DWARFMENU")
+            {
+                PAUSE_BEHAVIOUR = PauseBehaviour::EXPLICIT_DWARFMENU;
+            }
+            else if (val == "ANYMENU" || val == "EXPLICIT_ANYMENU")
+            {
+                PAUSE_BEHAVIOUR = PauseBehaviour::EXPLICIT_ANYMENU;
+            }
+            else
+            {
+        		cerr << "Pause behaviour not recognized." << endl;
+        		return false;
+            }
         }
 		if (key == "CURSOR_IS_TEXT")
         {

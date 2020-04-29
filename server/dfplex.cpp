@@ -103,7 +103,7 @@ static void dfplex_update();
 bool is_paused()
 {
     if (global_pause) return true;
-    if (NOPAUSE) return false;
+    if (PAUSE_BEHAVIOUR != PauseBehaviour::ALWAYS) return false;
     if (plexing)
     {
         size_t i = 0;
@@ -314,7 +314,7 @@ static bool update_multiplexing(Client* client)
             }
             
             // update screen except if it would cause a tick.
-            if (!is_at_root() && Gui::getFocusString(vs) != "dwarfmode/Squads")
+            if (!is_realtime_dwarf_menu())
             {
                 vs->logic();
             }
@@ -338,7 +338,7 @@ static bool update_multiplexing(Client* client)
                     + (menu_modified ? "[" : "") + focus_string + (menu_modified ? "]" : "")
                     + " +" + std::to_string(get_vs_depth(vs))
                     + " (" + std::to_string(keys_c) + ((keys_c == 1) ? " key)" : " keys)")
-                    + ((!NOPAUSE && !global_pause && is_paused()) ? " [resume pending]" : "");
+                    + ((!global_pause && is_paused()) ? " [resume pending]" : "");
                 if (client->m_debug_enabled)
                 {
                     client->m_debug_info = "(Press \"|\" to close.)\n";
@@ -365,6 +365,7 @@ static bool update_multiplexing(Client* client)
             // stop plexing.
             plexing = false;
             global_pause = true;
+            World::SetPauseState(global_pause);
             break;
         }
         
@@ -405,6 +406,7 @@ void check_events()
             // pause and enable uniplexing until players disable it.
             plexing = false;
             global_pause = true;
+            World::SetPauseState(global_pause);
         }
     }
     
@@ -435,6 +437,7 @@ void check_events()
             
             // pause, for convenience
             global_pause = true;
+            World::SetPauseState(global_pause);
         }
         in_df_mode = true;
     }
@@ -551,9 +554,6 @@ void dfplex_update()
         }
         
         // decide DF's paused status for the remainder of the frame.
-        // It's important to set this even if NOPAUSE is true, as the
-        // game can still set the pause state on its own while debug_nopause is
-        // set, and we need to detect and respect that at the start of each update.
         World::SetPauseState(is_paused());
         
         // take a single step
@@ -623,8 +623,14 @@ static void enable()
     
     hook_renderer();
 
-    wsthread = new tthread::thread(wsthreadmain, _out);
-    staticserver_thread = new tthread::thread(init_static, nullptr);
+    if (PORT != 0)
+    {
+        wsthread = new tthread::thread(wsthreadmain, _out);
+    }
+    if (STATICPORT != 0)
+    {
+        staticserver_thread = new tthread::thread(init_static, nullptr);
+    }
 }
 
 static void disable()

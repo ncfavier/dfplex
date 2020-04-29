@@ -7,6 +7,7 @@
 #include "hackutil.hpp"
 #include "dfplex.hpp"
 #include "parse_config.hpp"
+#include "config.hpp"
 
 #include "DataDefs.h"
 
@@ -876,20 +877,40 @@ void apply_command(std::set<df::interface_key>& keys, Client* cl, bool raw)
         
         apply_special_case(cl, keys, rkey);
         
+        UPDATE_VS(vs, id); // paranoia
+        
         // we will now apply the union of keys U rkey.m_interface_keys...
         keys.insert(rkey.m_interface_keys.begin(), rkey.m_interface_keys.end());
+        
         
         if (keys.empty())
         {
             return;
         }
         
+        // special pause behaviour (configurable in data/init/dfplex.txt)
+        if (PAUSE_BEHAVIOUR == PauseBehaviour::EXPLICIT_ANYMENU || PAUSE_BEHAVIOUR == PauseBehaviour::EXPLICIT_DWARFMENU)
+        {
+            if (contains(keys, D_PAUSE))
+            {
+                if (is_dwarf_mode() && !vs->key_conflict(D_PAUSE) && !is_realtime_dwarf_menu())
+                {
+                    const bool toggle_pause =
+                           (PAUSE_BEHAVIOUR == PauseBehaviour::EXPLICIT_ANYMENU)
+                        || (PAUSE_BEHAVIOUR == PauseBehaviour::EXPLICIT_DWARFMENU && id == &df::viewscreen_dwarfmodest::_identity);
+                    
+                    global_pause ^= toggle_pause;
+                    World::SetPauseState(global_pause);
+                }
+            }
+        }
+        
         // apply, but only record it into the restore_keys stack if the result
         // is meaningful.
-        if (!keys.empty())
         {
             // need to copy the keys, since vs->feed can edit it.
             std::set<df::interface_key> _keys = keys;
+            
             vs->feed(&_keys);
             UPDATE_VS(vs, id);
         }

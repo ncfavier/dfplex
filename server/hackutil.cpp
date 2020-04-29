@@ -70,6 +70,16 @@ bool is_at_root()
         && df::global::ui->main.mode == df::ui_sidebar_mode::Default;
 }
 
+bool is_realtime_dwarf_menu()
+{
+    df::viewscreen* vs;
+    df::virtual_identity* id;
+    UPDATE_VS(vs, id);
+    return (id == &df::viewscreen_dwarfmodest::_identity)
+        && (df::global::ui->main.mode == df::ui_sidebar_mode::Default
+            ||df::global::ui->main.mode == df::ui_sidebar_mode::Squads);
+}
+
 // force: exit even if that would be a state-changing action.
 static void apply_return_for(df::viewscreen* vs, bool force)
 {
