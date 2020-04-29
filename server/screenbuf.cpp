@@ -22,6 +22,7 @@
 #include "modules/Gui.h"
 #include "modules/World.h"
 #include "modules/Screen.h"
+#include "modules/Renderer.h"
 #include "df/graphic.h"
 #include "df/enabler.h"
 #include "df/renderer.h"
@@ -56,6 +57,7 @@
 #include "hackutil.hpp"
 #include "keymap.hpp"
 #include "config.hpp"
+#include "dfplex.hpp"
 
 using namespace DFHack;
 using namespace df::enums;
@@ -555,40 +557,36 @@ void read_screenbuf_tiles()
 
 static bool permit_render = true;
 
-#include "renderer_wrap.hpp"
-struct renderhook : public renderer_wrap {
-public:
-    renderhook(renderer* r):renderer_wrap(r) {}
-
-    virtual void grid_resize(int32_t w, int32_t h)
-    {
-        // TODO -- should we use this?
-        renderer_wrap::grid_resize(w, h);
-    };
-    
-    virtual void render()
-    {
-        if (permit_render)
-        {
-            dfplex_mutex.lock();
-            renderer_wrap::render();
-            dfplex_mutex.unlock();
-        }
-    };
-};
-
 void hook_renderer()
 {
-    enabler->renderer = new renderhook(enabler->renderer);
-    enabler->renderer->update_all();
+    
 }
 
 void unhook_renderer()
 {
-    delete enabler->renderer;
+    
 }
 
-void perform_render()
+static int _dimy = 1000;
+
+static void paranoid_resize(int32_t x, int32_t y)
+{
+    Screen::invalidate();
+    Screen::clear();
+    Screen::invalidate();
+    int32_t _x = std::clamp(x, 2, 255);
+    int32_t _y = std::clamp(y, 2, 255);
+    enabler->renderer->grid_resize(_x, _y);
+    assert(gps->dimx == _x);
+    assert(gps->dimy == _y);
+    Screen::invalidate();
+    Screen::clear();
+    Screen::invalidate();
+}
+
+static int32_t prev_dimx=0, prev_dimy=0;
+
+void perform_render(int32_t w, int32_t h)
 {
     df::viewscreen* vs;
     virtual_identity* id;
@@ -596,8 +594,22 @@ void perform_render()
     (void)id;
     
     permit_render = false;
-    vs->render();
-    permit_render = true;
     
+    // swap out screen for our own.
+    prev_dimx = gps->dimx;
+    prev_dimy = gps->dimy;
+    
+    paranoid_resize(w, h);
+    
+    // draw the screen
+    vs->render();
+    
+    // read the screen
     read_screenbuf_tiles();
+}
+
+void restore_render()
+{
+    // restore screen size to how it was before perform_render()
+    paranoid_resize(prev_dimx, prev_dimy);
 }

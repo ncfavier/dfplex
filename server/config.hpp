@@ -30,6 +30,7 @@ extern uint32_t PREV_CLIENT_POS_KEY;
 extern bool CURSOR_IS_TEXT;
 extern std::string SECRET;
 extern PauseBehaviour PAUSE_BEHAVIOUR;
+extern bool CHAT_ENABLED;
 
 bool load_config();
 std::vector<std::string> split(const char *str, char c = ' ');

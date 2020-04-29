@@ -522,9 +522,10 @@ void dfplex_update()
                     if (update_multiplexing(client))
                     {
                         // transfer screen to this client
-                        perform_render();
+                        perform_render(client->desired_dimx, client->desired_dimy);
                         scrape_screenbuf(client);
                         transfer_screenbuf_client(client);
+                        restore_render();
                     }
                     
                     if (plexing) return_to_root();

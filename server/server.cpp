@@ -25,7 +25,6 @@ typedef ws::server<ws::config::asio> server;
 typedef server::message_ptr message_ptr;
 
 static conn_hdl null_conn = std::weak_ptr<void>();
-static Client* null_client;
 
 
 conn_map clients;
@@ -116,7 +115,7 @@ Client* get_client(conn_hdl hdl)
 {
     auto it = clients.find(hdl);
     if (it == clients.end()) {
-        return null_client;
+        return nullptr;
     }
     return it->second;
 }
@@ -204,9 +203,7 @@ void on_open(server* s, conn_hdl hdl)
     cl->addr = raw_conn->get_remote_endpoint();
     cl->nick = nick;
     memset(cl->sc, 0, sizeof(cl->sc));
-
-    assert(cl->addr != "");
-    assert(cl->nick != "__NOBODY");
+    
     clients[hdl] = cl;
     dfplex_mutex.unlock();
 }
@@ -215,7 +212,7 @@ void on_close(server* s, conn_hdl c)
 {
     dfplex_mutex.lock();
     Client* cl = get_client(c);
-    if (cl != null_client) {
+    if (cl) {
         delete cl;
     }
     clients.erase(c);
@@ -224,7 +221,9 @@ void on_close(server* s, conn_hdl c)
 
 void tock(server* s, conn_hdl hdl)
 {
+    // not const b/c we modify the "modified" flag per-tile for delta encoding.
     Client* cl = get_client(hdl);
+    if (!cl) return;
     
     unsigned char *b = buf;
     // [0] msgtype
@@ -243,8 +242,9 @@ void tock(server* s, conn_hdl hdl)
     b += sizeof(load);
 
     // [7-8] game dimensions
-    *(b++) = gps->dimx;
-    *(b++) = gps->dimy;
+    assert(cl->dimx < 256 && cl->dimy < 256);
+    *(b++) = cl->dimx;
+    *(b++) = cl->dimy;
 
     // dfplex sent the active player's nickname here.
     // this is now used to send info_message.
@@ -275,9 +275,9 @@ void tock(server* s, conn_hdl hdl)
     }
 
     // [M-N] Changed tiles. 5 bytes per tile
-    for (int y = 0; y < gps->dimy; y++) {
-        for (int x = 0; x < gps->dimx; x++) {
-            const int tile = x * gps->dimy + y;
+    for (int y = 0; y < cl->dimy; y++) {
+        for (int x = 0; x < cl->dimx; x++) {
+            const int tile = x * cl->dimy + y;
             if (tile >= 256 * 256) break;
             ClientTile& ct = cl->sc[tile]; // client's tile
             if (ct.modified)
@@ -304,6 +304,9 @@ void on_message(server* s, conn_hdl hdl, message_ptr msg)
     auto str = msg->get_payload();
     const unsigned char *mdata = (const unsigned char*) str.c_str();
     int msz = str.size();
+    
+    Client* cl = get_client(hdl);
+    if (!cl) goto skip;
 
     if (mdata[0] == 112 && msz == 3) { // ResizeEvent
         // TODO: how to handle resizing between multiple players
@@ -313,7 +316,6 @@ void on_message(server* s, conn_hdl hdl, message_ptr msg)
             needsresize = true;
         }*/
     } else if (mdata[0] == 111 && msz == 4) { // KeyEvent
-		Client* cl = get_client(hdl);
 
         if (mdata[1]){
             KeyEvent match;
@@ -335,10 +337,7 @@ void on_message(server* s, conn_hdl hdl, message_ptr msg)
         } else {
             goto skip;
         }
-        
-
     } else if (mdata[0] == 115) { // refreshScreen
-        Client* cl = get_client(hdl);
         // in particular, this sets the modified flag to 0.
         memset(cl->sc, 0, sizeof(cl->sc));
     } else {
@@ -357,9 +356,6 @@ void on_init(conn_hdl hdl, boost::asio::ip::tcp::socket & s)
 
 void wsthreadmain(void *i_raw_out)
 {
-    null_client = new Client;
-    null_client->nick = "__NOBODY";
-
     logbuf lb;
     std::ostream logstream(&lb);
 

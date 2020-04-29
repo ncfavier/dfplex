@@ -17,6 +17,7 @@ bool CURSOR_IS_TEXT = false;
 PauseBehaviour PAUSE_BEHAVIOUR = PauseBehaviour::EXPLICIT;
 uint32_t DEBUGKEY = 0;
 uint32_t SERVERDEBUGKEY = 0;
+bool CHAT_ENABLED = true;
 std::string SECRET = ""; // auth is disabled by default
 
 #include <iostream>

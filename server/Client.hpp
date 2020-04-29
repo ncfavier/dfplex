@@ -324,6 +324,7 @@ struct Client {
     // client's screen
     screenbuf_t sc;
     int32_t dimx=0, dimy=0;
+    int32_t desired_dimx=80, desired_dimy=25;
 
 	bool is_admin;
     
