@@ -114,7 +114,7 @@ static bool try_shrink_keyqueue_to(Client*, size_t menu_depth, menu_id menu_id);
     RUN_OVER_INKEYS(CURSOR_UP, CURSOR_DOWN_Z_AUX, savekeys.insert)
 
 #define REMOVE_CURSORSCROLL_HELPER(_key) \
-    (keys.erase(_key), savekeys.eras(_key))
+    (keys.erase(_key), savekeys.erase(_key))
 
 #define REMOVE_CURSORSCROLL() \
     RUN_OVER_INKEYS(CURSOR_UP, CURSOR_DOWN_Z_AUX, REMOVE_CURSORSCROLL_HELPER)
