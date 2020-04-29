@@ -519,14 +519,17 @@ void dfplex_update()
                     // user works with global pause state
                     World::SetPauseState(global_pause);
                     
+                    set_size(client->desired_dimx, client->desired_dimy);
+                    
                     if (update_multiplexing(client))
                     {
                         // transfer screen to this client
-                        perform_render(client->desired_dimx, client->desired_dimy);
+                        perform_render();
                         scrape_screenbuf(client);
                         transfer_screenbuf_client(client);
-                        restore_render();
                     }
+                    
+                    restore_size();
                     
                     if (plexing) return_to_root();
                     
@@ -543,6 +546,7 @@ void dfplex_update()
         // uniplexing
         if (!plexing)
         {
+            set_size(gps->dimx, gps->dimy);
             update_uniplexing();
             
             if (!plexing)

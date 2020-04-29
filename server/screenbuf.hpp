@@ -20,6 +20,8 @@ void transfer_screenbuf_client(Client* client);
 
 void transfer_screenbuf_to_all();
 
-void perform_render(int32_t w, int32_t h);
+void set_size(int32_t w, int32_t h);
 
-void restore_render();
+void perform_render();
+
+void restore_size();

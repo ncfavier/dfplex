@@ -5,11 +5,9 @@
  */
 
 #include "server.hpp"
+#include "config.hpp"
 #include "DFHackVersion.h"
 #include "Core.h"
-
-#define WF_VERSION "DFPlex-v0.1"
-#define WF_INVALID "DFPlex-invalid"
 
 #include <cassert>
 #include <websocketpp/config/asio_no_tls.hpp>
@@ -308,13 +306,9 @@ void on_message(server* s, conn_hdl hdl, message_ptr msg)
     Client* cl = get_client(hdl);
     if (!cl) goto skip;
 
-    if (mdata[0] == 112 && msz == 3) { // ResizeEvent
-        // TODO: how to handle resizing between multiple players
-        /*if (hdl == active_conn) {
-            newwidth = mdata[1];
-            newheight = mdata[2];
-            needsresize = true;
-        }*/
+    if (mdata[0] == 117 && msz == 3) { // ResizeEvent
+        cl->desired_dimx = mdata[1];
+        cl->desired_dimy = mdata[2];
     } else if (mdata[0] == 111 && msz == 4) { // KeyEvent
 
         if (mdata[1]){

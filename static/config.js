@@ -8,10 +8,11 @@
  * string.
  */
 
-// note that host and port are edited by config-srv, which is
+// note that some fields are edited by config-srv, which is
 // dynamically-generated.
 var config = {
 	port: '1234',
+	protocol: 'DFPlex-invalid',
 	tiles: "Phoebus.png",
 	text: "ShizzleClean.png",
 	overworld: "ShizzleClean.png",

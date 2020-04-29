@@ -31,6 +31,10 @@ extern bool CURSOR_IS_TEXT;
 extern std::string SECRET;
 extern PauseBehaviour PAUSE_BEHAVIOUR;
 extern bool CHAT_ENABLED;
+extern bool MULTISIZE;
+
+#define WF_VERSION "DFPlex-v0.2"
+#define WF_INVALID "DFPlex-invalid"
 
 bool load_config();
 std::vector<std::string> split(const char *str, char c = ' ');

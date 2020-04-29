@@ -33,6 +33,7 @@ void init_static(void*)
         std::stringstream ss;
         ss << "// This file is dynamically generated.\n";
         ss << "config.port = '" << PORT << "';\n";
+        ss << "config.protocol = '" << WF_VERSION << "';\n";
         res.set_content(ss.str().c_str(), "application/javascript");
     });
     

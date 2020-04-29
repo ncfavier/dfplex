@@ -29,6 +29,7 @@ var colors = [
 var MAX_FPS = 20;
 
 var port = params.port;
+var protocol = params.protocol;
 var tileSet = params.tiles;
 var textSet = params.text;
 var ovrSet = params.overworld;
@@ -51,6 +52,7 @@ var cmd = {
 	"update":  110,
 	"sendKey": 111,
 	"connect": 115,
+	"resize": 117,
 	"requestTurn": 116
 };
 
@@ -131,7 +133,7 @@ function setStatus(text, color, onclick) {
 
 function connect() {
 	setStatus('Connecting...', 'orange');
-	websocket = new WebSocket(wsUri, ['DFPlex-v0.1', 'DFPlex-invalid']);
+	websocket = new WebSocket(wsUri, [protocol, 'DFPlex-invalid']);
 	websocket.binaryType = 'arraybuffer';
 	websocket.onopen  = onOpen;
 	websocket.onclose = onClose;
@@ -280,6 +282,31 @@ function renderUpdate(ctx, data, offset) {
 	}
 }
 
+function constrainCanvasSize() {
+	/*canvas.style.width  = ""
+	canvas.style.height  = ""
+	
+	var maxw = canvas.parentNode.offsetWidth;
+    var maxh = canvas.parentNode.offsetHeight;
+		
+	if (maxw >= canvas.width && maxh >= canvas.height) {
+		return
+	}
+		
+	var aspectRatio = canvas.width / canvas.height;
+	var constrainWidth = (maxw / maxh < aspectRatio);
+
+	console.log("new constrainWidth: " + constrainWidth);
+
+	if (constrainWidth) {
+	   canvas.style.width  = "100%";
+	   canvas.style.height = "";
+	} else {
+	   canvas.style.width  = "";
+	   canvas.style.height = "100%";
+   }*/
+}
+
 function onMessage(evt) {
 	var data = new Uint8Array(evt.data);
 
@@ -303,9 +330,14 @@ function onMessage(evt) {
 			(data[5]<<16) |
 			(data[6]<<24);
 
-		// FIXME: we shouldn't need resize data
 		var neww = data[7] * tilew;
 		var newh = data[8] * tileh;
+		if (neww != canvas.width || newh != canvas.height) {
+			canvas.width = neww;
+			canvas.height = newh;
+			
+			constrainCanvasSize()
+		}
 
 		var nickSize = data[9];
 		// this only works because we know the input is uri-encoded ascii
@@ -453,7 +485,6 @@ if (colorscheme !== undefined) {
 
 var canvas = document.getElementById('myCanvas');
 
-
 document.onkeydown = function(ev) {
 	if (!active)
 		return;
@@ -473,31 +504,21 @@ document.onkeydown = function(ev) {
     logKeyCode(ev);
     websocket.send(data);
     ev.preventDefault();
-
 };
 
 
-var lastConstraint = null;
 function fitCanvasToParent() {
+	canvas.style.width  = ""
+	canvas.style.height  = ""
 	var maxw = canvas.parentNode.offsetWidth;
 	var maxh = canvas.parentNode.offsetHeight;
-	var aspectRatio = canvas.width / canvas.height;
-	var constrainWidth = (maxw / maxh < aspectRatio);
-
-	if (lastConstraint === constrainWidth) {
-		return;
-	}
-	console.log("new constrainWidth: " + constrainWidth);
-
-	if (constrainWidth) {
-		canvas.style.width  = "100%";
-		canvas.style.height = "";
-	} else {
-		canvas.style.width  = "";
-		canvas.style.height = "100%";
-	}
-
-	lastConstraint = constrainWidth;
+	var gridw = Math.min(Math.floor(maxw / tilew), 255);
+	// need to subtract 1, likely the header.
+	var gridh = Math.min(Math.floor(maxh / tileh), 255) - 1;
+	
+	// request resize from server.
+	var data = new Uint8Array([cmd.resize, gridw, gridh]);
+	websocket.send(data);
 }
 
 window.onresize = fitCanvasToParent;

@@ -555,52 +555,43 @@ void read_screenbuf_tiles()
     }
 }
 
-static bool permit_render = true;
-
+// no longer used
 void hook_renderer()
-{
-    
-}
+{ }
 
 void unhook_renderer()
-{
-    
-}
+{ }
 
 static int _dimy = 1000;
 
 static void paranoid_resize(int32_t x, int32_t y)
 {
     Screen::invalidate();
-    Screen::clear();
-    Screen::invalidate();
-    int32_t _x = std::clamp(x, 2, 255);
-    int32_t _y = std::clamp(y, 2, 255);
+    int32_t _x = std::min(std::max(x, 80), 127);
+    int32_t _y = std::min(std::max(y, 25), 127);
     enabler->renderer->grid_resize(_x, _y);
     assert(gps->dimx == _x);
     assert(gps->dimy == _y);
-    Screen::invalidate();
-    Screen::clear();
     Screen::invalidate();
 }
 
 static int32_t prev_dimx=0, prev_dimy=0;
 
-void perform_render(int32_t w, int32_t h)
+void set_size(int32_t w, int32_t h)
 {
-    df::viewscreen* vs;
-    virtual_identity* id;
-    UPDATE_VS(vs, id);
-    (void)id;
-    
-    permit_render = false;
-    
     // swap out screen for our own.
     prev_dimx = gps->dimx;
     prev_dimy = gps->dimy;
     
     paranoid_resize(w, h);
-    
+}
+
+void perform_render()
+{
+    df::viewscreen* vs;
+    virtual_identity* id;
+    UPDATE_VS(vs, id);
+    (void)id;
     // draw the screen
     vs->render();
     
@@ -608,7 +599,7 @@ void perform_render(int32_t w, int32_t h)
     read_screenbuf_tiles();
 }
 
-void restore_render()
+void restore_size()
 {
     // restore screen size to how it was before perform_render()
     paranoid_resize(prev_dimx, prev_dimy);
