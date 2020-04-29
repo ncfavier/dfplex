@@ -6,7 +6,7 @@
 
 DFPlex is a plugin for [DFHack](https://github.com/DFHack/dfhack) which brings simultaneous, real-time co-op multiplayer Fortress mode to [Dwarf Fortress](http://www.bay12games.com/dwarves/). Each player has their own independent view, cursor, menus, etc. so nobody has to wrestle for control. It's a fork of [Webfort](https://github.com/Ankoku/df-webfort), so players can join just by connecting from their web browser.
 
-If you prefer the solo experience, DFPlex allows you to have multiple views into your own fortress, or simply to run the game without pausing every time you enter a menu. Pausing behaviour is configurable, but by default, the game only now pauses when players explicitly press the pause button or when (an event occurs that would pause the game, such as the arrival of an uninvited guest).
+If you prefer the solo experience, DFPlex allows you to have multiple views into your own fortress, or simply to run the game without pausing every time you enter a menu (an optional feature that improves the pacing on multiplayer).
 
 ### Installing ###
 
@@ -15,7 +15,7 @@ See the [releases page](https://github.com/white-rabbit-dfplex/dfplex/releases) 
 To compile from source, you can use git:
 
 ```
-git clone --branch master --recursive https://github.com/white-rabbit-dfplex/dfhack
+git clone --recursive https://github.com/white-rabbit-dfplex/dfhack
 ```
 
 Then just follow the [build instructions for dfhack](https://dfhack.readthedocs.io/en/stable/docs/Compile.html). Please take care to ensure that you install into the correct version of Dwarf Fortress. You can check which version DFHack is compatible with by looking at the `CMakeLists.txt` file in the DFHack repo.
