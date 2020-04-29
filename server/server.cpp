@@ -6,6 +6,7 @@
 
 #include "server.hpp"
 #include "DFHackVersion.h"
+#include "Core.h"
 
 #define WF_VERSION "DFPlex-v0.1"
 #define WF_INVALID "DFPlex-invalid"
@@ -43,14 +44,11 @@ using df::global::gps;
 static unsigned char buf[0x100000];
 
 static std::ostream* out;
-static DFHack::color_ostream* raw_out;
 
 class logbuf : public std::stringbuf {
 public:
-    logbuf(DFHack::color_ostream* i_out) : std::stringbuf()
-    {
-        dfout = i_out;
-    }
+    logbuf() : std::stringbuf()
+    { }
     int sync()
     {
         std::string o = this->str();
@@ -65,22 +63,19 @@ public:
         }
 
         // color warnings and errors
-        if (o.find("ERROR") != std::string::npos) {
-            dfout->color(DFHack::COLOR_RED);
-        } else if (o.find("WARN") != std::string::npos) {
-            dfout->color(DFHack::COLOR_YELLOW);
+        const bool err = (o.find("ERROR") != std::string::npos);
+
+        if (err)
+        {
+            DFHack::Core::printerr("%s", o.c_str());
         }
-
-        *dfout << o;
-        std::cout << o;
-
-        dfout->flush();
-        dfout->color(DFHack::COLOR_RESET);
-        std::cout.flush();
+        else
+        {
+            DFHack::Core::print("%s", o.c_str());
+        }
         str("");
         return 0;
     }
-    DFHack::color_ostream* dfout;
 };
 
 class appbuf : public std::stringbuf {
@@ -365,8 +360,7 @@ void wsthreadmain(void *i_raw_out)
     null_client = new Client;
     null_client->nick = "__NOBODY";
 
-    raw_out = (DFHack::color_ostream*) i_raw_out;
-    logbuf lb((DFHack::color_ostream*) i_raw_out);
+    logbuf lb;
     std::ostream logstream(&lb);
 
     server srv;

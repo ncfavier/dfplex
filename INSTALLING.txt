@@ -4,7 +4,7 @@
 
 DFPlex is the dfhack plugin that gets added directly to your Dwarf
 Fortress install. Just follow the dfhack installation instructions. If you're building
-from source, see the build instructions below ("From Source").
+from source, see the build instructions in the README.
 
 2. Launch dfhack
 
@@ -24,9 +24,3 @@ forwarding. If you haven't done this before, see
 	http://portforward.com/
 
 for a list of guides for common routers.
-
-### From Source ###
-
-Please note that this repository is a submodule of dfhack. Please recursively
-clone dfhack from the SAME github namespace as you found this repository in and 
-follow its build instructions. Then follow the above instructions to set up the server.

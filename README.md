@@ -15,7 +15,7 @@ See the [releases page](https://github.com/white-rabbit-dfplex/dfplex/releases) 
 To compile from source, you can use git:
 
 ```
-git clone --recursive https://github.com/white-rabbit-dfplex/dfhack
+git clone --branch master --recursive https://github.com/white-rabbit-dfplex/dfhack
 ```
 
 Then just follow the [build instructions for dfhack](https://dfhack.readthedocs.io/en/stable/docs/Compile.html). Please take care to ensure that you install into the correct version of Dwarf Fortress. You can check which version DFHack is compatible with by looking at the `CMakeLists.txt` file in the DFHack repo.

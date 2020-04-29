@@ -486,6 +486,7 @@ void transfer_screenbuf_client(Client* client)
 {
     if (client)
     {
+        // status message in the dwarf mode screen border, e.g. *PAUSED*
         set_status();
         
         modify_screenbuf(client);

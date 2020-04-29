@@ -38,16 +38,13 @@ void init_static(void*)
     
     if (!ret)
     {
-        _out->color(COLOR_RED);
-        *_out << "[DFPLEX] Failed to serve static site files from \"" << STATICDIR.c_str()
-        << "\"" << std::endl;
-        _out->color(COLOR_RESET);
+        Core::printerr("[DFPLEX] Failed to serve static site files from \"%s\"\n", STATICDIR.c_str());
     }
     else
     {
-        *_out << "[DFPLEX] Static site server starting on port " << STATICPORT << endl;
-        *_out << "[DFPLEX] Serving files from directory " << STATICDIR << endl;
-        *_out << "[DFPLEX] Connect to http://localhost:" << STATICPORT << "/dfplex.html in your browser." << endl;
+        Core::print("[DFPLEX] Static site server starting on port %d", STATICPORT);
+        Core::print("[DFPLEX] Serving files from directory %s", STATICDIR.c_str());
+        Core::print("[DFPLEX] Connect to http://localhost:%d/dfplex.html in your browser.", STATICPORT);
         svr.listen("0.0.0.0", STATICPORT);
     }
 }
