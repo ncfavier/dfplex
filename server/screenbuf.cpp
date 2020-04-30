@@ -567,8 +567,8 @@ static int _dimy = 1000;
 static void paranoid_resize(int32_t x, int32_t y)
 {
     Screen::invalidate();
-    int32_t _x = std::min(std::max(x, 80), 127);
-    int32_t _y = std::min(std::max(y, 25), 127);
+    int32_t _x = std::min(std::max(x, 80), 255);
+    int32_t _y = std::min(std::max(y, 25), 255);
     enabler->renderer->grid_resize(_x, _y);
     assert(gps->dimx == _x);
     assert(gps->dimy == _y);

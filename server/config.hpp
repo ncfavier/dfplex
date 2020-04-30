@@ -15,6 +15,7 @@ enum class PauseBehaviour {
     EXPLICIT,
     EXPLICIT_DWARFMENU,
     EXPLICIT_ANYMENU,
+    //NEVER
 };
 
 extern bool AUTOSAVE_WHILE_IDLE;

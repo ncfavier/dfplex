@@ -90,6 +90,10 @@ bool load_text_file()
             {
                 PAUSE_BEHAVIOUR = PauseBehaviour::EXPLICIT_ANYMENU;
             }
+            /*else if (val == "NEVER")
+            {
+                PAUSE_BEHAVIOUR = PauseBehaviour::NEVER;
+            }*/
             else
             {
         		cerr << "Pause behaviour not recognized." << endl;

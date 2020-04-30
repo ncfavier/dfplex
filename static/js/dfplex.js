@@ -282,29 +282,33 @@ function renderUpdate(ctx, data, offset) {
 	}
 }
 
-function constrainCanvasSize() {
-	/*canvas.style.width  = ""
+function updateCanvasDOM() {
+	canvas.style.width  = ""
 	canvas.style.height  = ""
 	
 	var maxw = canvas.parentNode.offsetWidth;
-    var maxh = canvas.parentNode.offsetHeight;
+    var maxh = canvas.parentNode.offsetHeight - document.getElementById('status-id').offsetHeight;
+	
+	console.log(canvas.width + "x" + canvas.height + " in " + maxw + "x" + maxh);
 		
 	if (maxw >= canvas.width && maxh >= canvas.height) {
+		canvas.style.left = (maxw - canvas.width) / 2 + "px";
 		return
 	}
 		
 	var aspectRatio = canvas.width / canvas.height;
 	var constrainWidth = (maxw / maxh < aspectRatio);
-
-	console.log("new constrainWidth: " + constrainWidth);
-
+	
+	console.log("constrainWidth: " + constrainWidth)
+	canvas.style.left = "0"
+	
 	if (constrainWidth) {
 	   canvas.style.width  = "100%";
-	   canvas.style.height = "";
+	   canvas.style.height = ""
 	} else {
 	   canvas.style.width  = "";
 	   canvas.style.height = "100%";
-   }*/
+   }
 }
 
 function onMessage(evt) {
@@ -336,7 +340,7 @@ function onMessage(evt) {
 			canvas.width = neww;
 			canvas.height = newh;
 			
-			constrainCanvasSize()
+			updateCanvasDOM()
 		}
 
 		var nickSize = data[9];
@@ -484,7 +488,9 @@ if (colorscheme !== undefined) {
 
 
 var canvas = document.getElementById('myCanvas');
-
+canvas.style.position="absolute"
+canvas.style.left="0"
+canvas.style.top="0"
 document.onkeydown = function(ev) {
 	if (!active)
 		return;
@@ -506,20 +512,27 @@ document.onkeydown = function(ev) {
     ev.preventDefault();
 };
 
-
-function fitCanvasToParent() {
-	canvas.style.width  = ""
-	canvas.style.height  = ""
+function udpateScreenSize() {
 	var maxw = canvas.parentNode.offsetWidth;
-	var maxh = canvas.parentNode.offsetHeight;
+	var maxh = canvas.parentNode.offsetHeight - document.getElementById('status-id').offsetHeight;
 	var gridw = Math.min(Math.floor(maxw / tilew), 255);
 	// need to subtract 1, likely the header.
-	var gridh = Math.min(Math.floor(maxh / tileh), 255) - 1;
+	var gridh = Math.min(Math.floor(maxh / tileh), 255);
 	
 	// request resize from server.
 	var data = new Uint8Array([cmd.resize, gridw, gridh]);
+	
+	// TODO: only send if screen size changed.
 	websocket.send(data);
 }
 
-window.onresize = fitCanvasToParent;
-window.onload   = fitCanvasToParent;
+window.onresize = udpateScreenSize;
+window.onload   = udpateScreenSize;
+
+// this is fine.
+setTimeout(udpateScreenSize, 10);
+setTimeout(udpateScreenSize, 100);
+setTimeout(udpateScreenSize, 200);
+setTimeout(udpateScreenSize, 400);
+setTimeout(udpateScreenSize, 800);
+setInterval(udpateScreenSize, 3000);

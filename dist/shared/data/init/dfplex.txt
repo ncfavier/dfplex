@@ -39,8 +39,10 @@ Pause behaviour:
     EXPLICIT: Players can only pause the game by pressing the pause key.
     EXPLICIT_DWARFMENU: like "Explicit", but the pause button can be pressed
         from any submenu in the main dwarfmode view that doesn't use the key.
+        *Experimental.*
     EXPLICIT_ANYMENU: like "Explicit", but the pause button can be pressed
         from *any* menu that doesn't use the key.
+        *Experimental.*
 [PAUSE:EXPLICIT]
 
 Display the cursor X as text?
