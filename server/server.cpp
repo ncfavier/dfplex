@@ -196,10 +196,10 @@ void on_open(server* s, conn_hdl hdl)
     }
 
     Client* cl = new Client;
-	cl->is_admin = (user_secret == SECRET);
+	cl->id->is_admin = (user_secret == SECRET);
 
-    cl->addr = raw_conn->get_remote_endpoint();
-    cl->nick = nick;
+    cl->id->addr = raw_conn->get_remote_endpoint();
+    cl->id->nick = nick;
     memset(cl->sc, 0, sizeof(cl->sc));
     
     clients[hdl] = cl;

@@ -18,6 +18,7 @@
 #include <vector>
 #include <queue>
 #include <set>
+#include <memory>
 
 struct Coord
 {
@@ -210,6 +211,8 @@ struct UIState
     // dfplex-specific UI information
     std::string m_dfplex_chat_message;
     bool m_dfplex_chat_entering = false;
+    bool m_dfplex_chat_config = false;
+    bool m_dfplex_chat_name_entering = false;
     
     // resets most UI state
     void reset()
@@ -246,6 +249,8 @@ struct UIState
         m_civ_y = -1;
         m_dfplex_chat_entering = false;
         m_dfplex_chat_message = "";
+        m_dfplex_chat_config = false;
+        m_dfplex_chat_name_entering = false;
     }
     
     // makes the UI ready to handle a new plex re-entry.
@@ -319,10 +324,16 @@ struct ClientTile
 // array of all tiles on the screen
 typedef ClientTile screenbuf_t[256 * 256];
 
-struct Client {
+struct ClientIdentity
+{
     std::string addr;
     std::string nick;
-    bool is_admin;
+    uint8_t nick_colour = 0;
+    bool is_admin = false;
+};
+
+struct Client {
+    std::shared_ptr<ClientIdentity> id{ new ClientIdentity() };
     
     std::string info_message; // this string is displayed to the user.
     

@@ -61,6 +61,7 @@ else(UNIX)
 	set(BOOST_ROOT ${WFDIR}/boost)
 	link_directories(${BOOST_ROOT}/lib) # Boost doesn't find everything
 endif(UNIX)
+
 # Boost/Asio
 set(Boost_FIND_REQUIRED TRUE)
 set(Boost_USE_STATIC_LIBS OFF)

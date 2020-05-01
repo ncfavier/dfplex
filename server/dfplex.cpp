@@ -13,6 +13,7 @@
 #include <vector>
 #include <list>
 #include <cassert>
+#include <functional>
 
 #include "tinythread.h"
 
@@ -141,75 +142,164 @@ static std::set<df::interface_key> match_to_keys(const KeyEvent& match)
     return keys;
 }
 
+enum class TypeResult {
+    NONE,
+    CONFIRM,
+    CANCEL
+};
+
+bool rtrue(const std::string&) { return true; }
+
+TypeResult _type_key(const std::set<df::interface_key>& keys, std::string& io_str,
+    const std::function<bool(const std::string&)>& validate = rtrue
+)
+{
+    if (contains(keys, interface_key::LEAVESCREEN))
+    {
+        // cancel chat.
+        return TypeResult::CANCEL;
+    }
+    else if (contains(keys, interface_key::SELECT))
+    {
+        // send message
+        if (validate(io_str))
+        {
+            return TypeResult::CONFIRM;
+        }
+    }
+    else if (contains(keys, interface_key::STRING_A000))
+    {
+        // backspace
+        if (io_str.length() > 0)
+        {
+            io_str =
+                io_str.substr(
+                    0, io_str.length() - 1
+                );
+        }
+    }
+    else for (
+        auto string_key = interface_key::STRING_A255;
+        string_key != interface_key::STRING_A000 && string_key != 0;
+        string_key = static_cast<decltype(string_key)>(static_cast<int32_t>(string_key) - 1)
+    )
+    {
+        if (contains(keys, string_key))
+        {
+            char c = 0;
+            
+            // convert key to key char
+            size_t keydiff = static_cast<size_t>(string_key) - static_cast<size_t>(interface_key::STRING_A032) + 32;
+            if (keydiff >= 32 && keydiff < 127)
+            {
+                c = keydiff;
+            }
+            else if (keydiff >= 127 && keydiff < 255)
+            {
+                c = keydiff + 1;
+            }
+            
+            if (c)
+            {
+                io_str += std::string(1, c);
+            }
+        }
+    }
+    return TypeResult::NONE;
+}
+
 void apply_key(const KeyEvent& match, Client* cl, bool raw)
 {
     std::set<df::interface_key> keys = match_to_keys(match);
     
     // special keys
-    if (CHAT_ENABLED && !raw && cl && is_realtime_dwarf_menu())
-    { 
+    if (CHAT_ENABLED && !raw && cl && is_realtime_dwarf_menu() && !cl->ui.m_dfplex_chat_config)
+    {
         if (cl->ui.m_dfplex_chat_entering)
         // is currently typing a message...
         {
-            if (contains(keys, df::enums::interface_key::LEAVESCREEN))
+            switch (_type_key(keys, cl->ui.m_dfplex_chat_message, [cl](const std::string& str) -> bool
+                {
+                    if (!cl) return false;
+                    if (CHAT_NAME_REQUIRED && !cl->id->nick.length()) return false;
+                    std::vector<std::string> lines = word_wrap_lines(str, CHAT_WIDTH);
+                    if (lines.size() > CHAT_MESSAGE_LINES) return false;
+                    return true;
+                }
+            ))
             {
-                // cancel chat.
+            case TypeResult::NONE:
+                break;
+            case TypeResult::CANCEL:
                 cl->ui.m_dfplex_chat_entering = false;
                 cl->ui.m_dfplex_chat_message = "";
-            }
-            else if (contains(keys, df::enums::interface_key::SELECT))
-            {
-                // send message
-                g_chatlog.push_message(ChatMessage{ cl->ui.m_dfplex_chat_message });
+                break;
+            case TypeResult::CONFIRM:
+                if (cl->ui.m_dfplex_chat_message.length())
+                {
+                    g_chatlog.push_message(ChatMessage{ cl->ui.m_dfplex_chat_message, cl->id });
+                }
                 cl->ui.m_dfplex_chat_entering = false;
                 cl->ui.m_dfplex_chat_message = "";
-            }
-            else if (contains(keys, df::enums::interface_key::STRING_A000))
-            {
-                // backspace
-                if (cl->ui.m_dfplex_chat_message.length() > 0)
-                {
-                    cl->ui.m_dfplex_chat_message =
-                        cl->ui.m_dfplex_chat_message.substr(
-                            0, cl->ui.m_dfplex_chat_message.length() - 1
-                        );
-                }
-            }
-            else for (
-                auto string_key = df::enums::interface_key::STRING_A255;
-                string_key != df::enums::interface_key::STRING_A000;
-                string_key = static_cast<decltype(string_key)>(static_cast<int32_t>(string_key) - 1)
-            )
-            {
-                if (contains(keys, string_key))
-                {
-                    char c = 0;
-                    
-                    // convert key to key char
-                    size_t keydiff = static_cast<size_t>(string_key) - static_cast<size_t>(df::enums::interface_key::STRING_A032) + 32;
-                    if (keydiff >= 32 && keydiff < 127)
-                    {
-                        c = keydiff;
-                    }
-                    else if (keydiff >= 127 && keydiff < 255)
-                    {
-                        c = keydiff + 1;
-                    }
-                    
-                    if (c)
-                    {
-                        cl->ui.m_dfplex_chat_message += std::string(1, c);
-                    }
-                }
+                break;
             }
             
             return;
         }
         else if (CHATKEY != 0 && !raw && (match.type == type_unicode || match.type == type_key) && match.unicode == CHATKEY)
         {
-            // in-game chat
-            cl->ui.m_dfplex_chat_entering = true;
-            cl->ui.m_dfplex_chat_message = "";
+            if (!CHAT_NAME_REQUIRED || cl->id->nick.length())
+            {
+                // in-game chat
+                cl->ui.m_dfplex_chat_entering = true;
+                cl->ui.m_dfplex_chat_message = "";
+                return;
+            }
+        }
+    }
+    if (CHAT_NAME_KEY && !raw && cl && is_at_root())
+    {
+        if (cl->ui.m_dfplex_chat_config && !cl->ui.m_dfplex_chat_name_entering)
+        {
+            if (contains(keys, interface_key::LEAVESCREEN))
+            {
+                cl->ui.m_dfplex_chat_config = false;
+                return;
+            }
+            else if ((match.type == type_unicode || match.type == type_key) && match.unicode == 'N')
+            {
+                cl->ui.m_dfplex_chat_name_entering = true;
+            }
+            for (int32_t i = 0; i < 8; ++i)
+            {
+                if ((match.type == type_unicode || match.type == type_key) && match.unicode == '0' + i)
+                {
+                    cl->id->nick_colour = i;
+                    return;
+                }
+            }
+            return;
+        }
+        else if (cl->ui.m_dfplex_chat_config && cl->ui.m_dfplex_chat_name_entering)
+        {
+            switch (_type_key(keys, cl->id->nick))
+            {
+                case TypeResult::CONFIRM:
+                case TypeResult::CANCEL:
+                    cl->ui.m_dfplex_chat_name_entering = false;
+                    break;
+                default:
+                    break;
+            }
+            
+            cl->id->nick = cl->id->nick.substr(0, 16);
+            cl->id->nick = replace_all(cl->id->nick, "\n", "");
+            cl->id->nick = replace_all(cl->id->nick, " ", "-");
+            return;
+        }
+        else if ((match.type == type_unicode || match.type == type_key) && match.unicode == CHAT_NAME_KEY)
+        {
+            cl->ui.m_dfplex_chat_config = true;
             return;
         }
     }

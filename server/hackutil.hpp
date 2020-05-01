@@ -31,8 +31,6 @@ menu_id get_current_menu_id();
 std::string unit_info(int32_t unit_id);
 std::string historical_figure_info(int32_t unit_id);
 
-void deify(DFHack::color_ostream* raw_out, std::string nick);
-void quicksave(DFHack::color_ostream* out);
 void show_announcement(std::string announcement);
 
 std::string historical_figure_info(int32_t figure_id);
@@ -45,11 +43,6 @@ inline bool is_dwarf_mode()
     DFHack::t_gamemodes gm;
     DFHack::World::ReadGameMode(gm);
     return gm.g_mode == df::game_mode::DWARF;
-}
-
-inline void quicksave(DFHack::color_ostream* out)
-{
-    DFHack::Core::getInstance().runCommand(*out, "quicksave");
 }
 
 bool is_at_root();

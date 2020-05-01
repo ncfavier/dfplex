@@ -251,6 +251,31 @@ std::string key_display_name(int32_t key)
     }
 }
 
+std::string blink_cursor()
+{
+    if ((frames_elapsed / 24) % 2)
+        return std::string(1, static_cast<char>(219));
+    else
+        return std::string(1, '_');
+}
+
+bool blank_sidebar()
+{
+    DFHack::Gui::DwarfmodeDims dims = Gui::getDwarfmodeViewDims();
+    if (dims.menu_on)
+    {
+        for (int x = dims.menu_x1; x < dims.menu_x2; ++x)
+        {
+            for (int y = dims.y1; y < dims.y2; ++y)
+            {
+                write_to_screen(x, y, " ", 0, 0, 0);
+            }
+        }
+    }
+    
+    return dims.menu_on;
+}
+
 void modify_screenbuf(Client* cl)
 {
     // modifications only occur in dwarfmode
@@ -277,7 +302,7 @@ void modify_screenbuf(Client* cl)
             const int ymax = gps->dimy - 2;
             int x = menu_additions_x;
             int y = menu_additions_y + 1;
-            for (int32_t i = 0; i < 4 && y < ymax; ++i)
+            for (int32_t i = 0; i < 5 && y < ymax; ++i)
             {
                 switch (i)
                 {
@@ -341,23 +366,89 @@ void modify_screenbuf(Client* cl)
                     }
                     break;
                 case 3:
-                    // chat key
+                    // chat name key
                     if (!plexing) break;
-                    if (CHAT_ENABLED && CHATKEY)
+                    if (CHAT_NAME_KEY)
                     {
-                        std::string s = key_display_name(CHATKEY);
+                        std::string s = key_display_name(CHAT_NAME_KEY);
                     
                         write_to_screen(x, y, s, 4, 0, 1);
                         
                         write_to_screen(x + s.length(), y, 
-                            ": Send Chat Message",
+                            ": User Config",
                             7, 0, 0
                         );
                         
                         ++y;
                     }
                     break;
+                case 4:
+                    // chat key
+                    if (!plexing) break;
+                    if (CHAT_ENABLED && CHATKEY)
+                    {
+                        if (!CHAT_NAME_REQUIRED || cl->id->nick.length())
+                        {
+                            std::string s = key_display_name(CHATKEY);
+                            
+                            write_to_screen(x, y, s, 4, 0, 1);
+                            
+                            write_to_screen(x + s.length(), y, 
+                                ": Send Chat Message",
+                                7, 0, 0
+                            );
+                        }
+                        else
+                        {
+                            write_to_screen(x, y, 
+                                "(Set User Name to Chat)",
+                                7, 0, 0
+                            );
+                        }
+                        
+                        ++y;
+                    }
+                    break;
                 }
+            }
+            
+            if (cl->ui.m_dfplex_chat_config)
+            {
+                blank_sidebar();
+                
+                int x = dims.menu_x1 + 1;
+                int y = dims.y1 + 1;
+                
+                write_to_screen(x, y, "N", 4, 0, 1);
+                write_to_screen(x + 1, y, 
+                    ": Set Username",
+                    7, 0, 0
+                );
+                ++y;
+                std::string uname_s = cl->id->nick;
+                if (cl->ui.m_dfplex_chat_name_entering)
+                {
+                    uname_s += blink_cursor();
+                }
+                write_to_screen(x, y, 
+                    uname_s,
+                    cl->id->nick_colour, 0, 1
+                );
+                
+                y+= 1;
+                write_to_screen(x + 8, y, 
+                    ": Set Colour",
+                    7, 0, 0
+                );
+                for (int32_t i = 0; i < 8; ++i)
+                {
+                    write_to_screen(x + i, y, 
+                        std::string(1, '0' + i),
+                        i, (i == cl->id->nick_colour) ? 7 : 0, 1
+                    );
+                }
+                
+                y += 2;
             }
         }
     }
@@ -392,24 +483,34 @@ void modify_screenbuf(Client* cl)
         {
             uint32_t x = 1;
             uint32_t y = gps->dimy - 1;
-            const uint32_t width = 23;
-            const uint32_t top = gps->dimy - 13;
+            const uint32_t width = CHAT_WIDTH;
+            const uint32_t top = gps->dimy - 1 - CHAT_HEIGHT;
             if (cl->ui.m_dfplex_chat_entering)
             {
                 std::stringstream ss;
                 ss << cl->ui.m_dfplex_chat_message;
                 
                 // cursor
-                if ((frames_elapsed / 24) % 2)
-                    ss << static_cast<char>(219);
-                else
-                    ss << '_';
+                ss << blink_cursor();
                     
                 std::vector<std::string> lines = word_wrap_lines(ss.str(), width);
                 y -= lines.size();
+                
+                uint8_t fgcol = 0;
+                if (lines.size() > CHAT_MESSAGE_LINES)
+                {
+                    fgcol = 4;
+                }
+                
                 for (size_t i = 0; i < lines.size(); ++i)
                 {
-                    write_to_screen(x, y + i, lines.at(i), 0, 0, 1);
+                    write_to_screen(x, y + i, lines.at(i), fgcol, 0, 1);
+                }
+                
+                if (cl->id->nick.length())
+                {
+                    --y;
+                    write_to_screen(x, y, cl->id->nick + ":", cl->id->nick_colour, 0, 1);
                 }
             }
             
@@ -438,6 +539,12 @@ void modify_screenbuf(Client* cl)
                     {
                         write_to_screen(x, y + i, lines.at(i), (flash ? 7 : 0), 0, 1);
                     }
+                }
+                
+                if (message.m_sender->nick.length())
+                {
+                    --y;
+                    write_to_screen(x, y, message.m_sender->nick + ":", message.m_sender->nick_colour, 0, 1);
                 }
             }
         }

@@ -4,6 +4,7 @@
 */
 
 #include "config.hpp"
+#include "Core.h"
 
 bool AUTOSAVE_WHILE_IDLE = 0;
 uint32_t MAX_CLIENTS = 0;
@@ -12,13 +13,15 @@ uint16_t STATICPORT = 8000;
 std::string STATICDIR = "hack/www";
 uint32_t MULTIPLEXKEY = 0;
 uint32_t CHATKEY = 0;
+uint32_t CHAT_NAME_KEY = 0;
+bool CHAT_NAME_REQUIRED = 1;
 uint32_t NEXT_CLIENT_POS_KEY = 0;
 uint32_t PREV_CLIENT_POS_KEY = 0;
 bool CURSOR_IS_TEXT = false;
 PauseBehaviour PAUSE_BEHAVIOUR = PauseBehaviour::EXPLICIT;
 uint32_t DEBUGKEY = 0;
 uint32_t SERVERDEBUGKEY = 0;
-uint16_t MESSAGE_TIME = 60 * 8;
+uint16_t MESSAGE_TIME = 60 * 18;
 uint16_t MESSAGE_FLASH_TIME = 10;
 size_t MAX_MESSAGE_COUNT = 0x10000;
 bool CHAT_ENABLED = true;
@@ -50,7 +53,7 @@ bool load_text_file()
 {
 	ifstream f("data/init/dfplex.txt");
 	if (!f.is_open()) {
-		cerr << "Webfort failed to open config file, skipping." << endl;
+		DFHack::Core::printerr("Webfort failed to open config file, skipping.\n");
 		return false;
 	}
 
@@ -100,7 +103,7 @@ bool load_text_file()
             }*/
             else
             {
-        		cerr << "Pause behaviour not recognized." << endl;
+        		DFHack::Core::printerr("Pause behaviour not recognized.\n");
         		return false;
             }
         }
@@ -116,22 +119,32 @@ bool load_text_file()
         {
 		    NEXT_CLIENT_POS_KEY = std::stol(val);
         }
-        if (key == "DEBUGKEY")
+        if (key == "DEBUGKEY" || key == "DEBUG_KEY")
         {
            DEBUGKEY = std::stol(val);
         }
-        if (key == "SERVERDEBUGKEY")
+        if (key == "SERVERDEBUGKEY" || key == "SERVER_DEBUG_KEY")
         {
            SERVERDEBUGKEY = std::stol(val);
         }
-        if (key == "MULTIPLEXKEY") {
+        if (key == "MULTIPLEXKEY" || key == "MULTIPLEX_KEY") {
             MULTIPLEXKEY = std::stol(val);
 		}
-        if (key == "CHATKEY") {
+        if (key == "CHATKEY" || key == "CHAT_KEY") {
             CHATKEY = std::stol(val);
             CHAT_ENABLED = !!CHATKEY;
 		}
+        if (key == "CHAT_NAME_KEY" || key == "CHATNAMEKEY") {
+            CHAT_NAME_KEY = std::stol(val);
+		}
+        if (key == "CHAT_NAME_REQUIRED") {
+            CHAT_NAME_REQUIRED = !!std::stol(val);
+		}
 	}
+    
+    // conditionals
+    if (!CHAT_NAME_KEY) CHAT_NAME_REQUIRED = false;
+    
 	return true;
 }
 

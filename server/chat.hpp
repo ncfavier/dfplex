@@ -14,8 +14,11 @@
 struct ChatMessage
 {
     std::string m_contents;
+    
+    std::shared_ptr<ClientIdentity> m_sender;
+    
     // time remaining on this message per-client;
-    std::unique_ptr<std::map<Client*, int32_t>> m_time_remaining;
+    std::unique_ptr<std::map<std::shared_ptr<ClientIdentity>, int32_t>> m_time_remaining;
     
     void expire(Client*);
     bool is_expired(Client*) const;

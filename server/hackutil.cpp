@@ -54,13 +54,6 @@ void show_announcement(std::string announcement)
     DFHack::Gui::showAnnouncement(announcement);
 }
 
-void deify(DFHack::color_ostream* raw_out, std::string nick)
-{
-    if (is_dwarf_mode()) {
-        Core::getInstance().runCommand(*raw_out, "deify " + nick);
-    }
-}
-
 bool is_at_root()
 {
     df::viewscreen* vs;

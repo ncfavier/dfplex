@@ -32,6 +32,8 @@ extern bool CURSOR_IS_TEXT;
 extern std::string SECRET;
 extern PauseBehaviour PAUSE_BEHAVIOUR;
 extern uint32_t CHATKEY;
+extern uint32_t CHAT_NAME_KEY;
+extern bool CHAT_NAME_REQUIRED;
 extern bool CHAT_ENABLED;
 extern bool MULTISIZE;
 extern uint16_t MESSAGE_TIME;
@@ -40,6 +42,10 @@ extern size_t MAX_MESSAGE_COUNT;
 
 #define WF_VERSION "DFPlex-v0.2"
 #define WF_INVALID "DFPlex-invalid"
+
+#define CHAT_WIDTH 22
+#define CHAT_HEIGHT 13
+#define CHAT_MESSAGE_LINES 5
 
 bool load_config();
 std::vector<std::string> split(const char *str, char c = ' ');

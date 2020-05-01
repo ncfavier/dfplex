@@ -30,7 +30,7 @@ This key toggles client's debug output
 [DEBUGKEY:124]
 
 This key toggles server's debug output
-[SERVERDEBUGKEY:0] (196)
+[SERVERDEBUGKEY:0] (125)
 
 Zoom to next client position (from default view)
 [PREV_CLIENT_POS_KEY:91]
@@ -49,6 +49,14 @@ Pause behaviour:
 
 Set this to 0 to disable in-game chat.
 [CHATKEY:96]
+
+Set this to 0 to disable chat names.
+[CHATNAMEKEY:126]
+
+Set this to 0 to disable requiring a name to chat.
+(If there is no key for setting a name, names will
+not be required.)
+[CHAT_NAME_REQUIRED:1]
 
 Display the cursor X as text?
 [CURSOR_IS_TEXT:1]
