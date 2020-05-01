@@ -79,6 +79,8 @@ static tthread::thread * wsthread;
 static tthread::thread * staticserver_thread;
 tthread::fast_mutex dfplex_mutex;
 
+ChatLog g_chatlog;
+
 // plex state
 static bool in_df_mode = false;
 bool plexing = false;
@@ -117,9 +119,100 @@ bool is_paused()
     return false;
 }
 
+static std::set<df::interface_key> match_to_keys(const KeyEvent& match)
+{
+    std::set<df::interface_key> keys;
+    if (match.type == type_key && match.unicode != 0){
+        // this event match contains both sdl and unicode data, match both
+        KeyEvent sdlMatch = match;
+        sdlMatch.unicode = 0;
+        keys  = keybindings.toInterfaceKey(sdlMatch);
+
+        KeyEvent unicodeMatch;
+        unicodeMatch.unicode = match.unicode;
+        unicodeMatch.type = type_unicode;
+        unicodeMatch.mod = 0;
+        std::set<df::interface_key> unicodeKeys = keybindings.toInterfaceKey(unicodeMatch);
+        keys.insert(unicodeKeys.begin(), unicodeKeys.end());
+    }else {
+        keys  = keybindings.toInterfaceKey(match);
+    }
+    
+    return keys;
+}
+
 void apply_key(const KeyEvent& match, Client* cl, bool raw)
 {
+    std::set<df::interface_key> keys = match_to_keys(match);
+    
     // special keys
+    if (CHAT_ENABLED && !raw && cl && is_realtime_dwarf_menu())
+    { 
+        if (cl->ui.m_dfplex_chat_entering)
+        // is currently typing a message...
+        {
+            if (contains(keys, df::enums::interface_key::LEAVESCREEN))
+            {
+                // cancel chat.
+                cl->ui.m_dfplex_chat_entering = false;
+                cl->ui.m_dfplex_chat_message = "";
+            }
+            else if (contains(keys, df::enums::interface_key::SELECT))
+            {
+                // send message
+                g_chatlog.push_message(ChatMessage{ cl->ui.m_dfplex_chat_message });
+                cl->ui.m_dfplex_chat_entering = false;
+                cl->ui.m_dfplex_chat_message = "";
+            }
+            else if (contains(keys, df::enums::interface_key::STRING_A000))
+            {
+                // backspace
+                if (cl->ui.m_dfplex_chat_message.length() > 0)
+                {
+                    cl->ui.m_dfplex_chat_message =
+                        cl->ui.m_dfplex_chat_message.substr(
+                            0, cl->ui.m_dfplex_chat_message.length() - 1
+                        );
+                }
+            }
+            else for (
+                auto string_key = df::enums::interface_key::STRING_A255;
+                string_key != df::enums::interface_key::STRING_A000;
+                string_key = static_cast<decltype(string_key)>(static_cast<int32_t>(string_key) - 1)
+            )
+            {
+                if (contains(keys, string_key))
+                {
+                    char c = 0;
+                    
+                    // convert key to key char
+                    size_t keydiff = static_cast<size_t>(string_key) - static_cast<size_t>(df::enums::interface_key::STRING_A032) + 32;
+                    if (keydiff >= 32 && keydiff < 127)
+                    {
+                        c = keydiff;
+                    }
+                    else if (keydiff >= 127 && keydiff < 255)
+                    {
+                        c = keydiff + 1;
+                    }
+                    
+                    if (c)
+                    {
+                        cl->ui.m_dfplex_chat_message += std::string(1, c);
+                    }
+                }
+            }
+            
+            return;
+        }
+        else if (CHATKEY != 0 && !raw && (match.type == type_unicode || match.type == type_key) && match.unicode == CHATKEY)
+        {
+            // in-game chat
+            cl->ui.m_dfplex_chat_entering = true;
+            cl->ui.m_dfplex_chat_message = "";
+            return;
+        }
+    }
     if (MULTIPLEXKEY != 0 && (match.type == type_unicode || match.type == type_key) && match.unicode == MULTIPLEXKEY)
     {
         // enter uniplex mode.
@@ -148,12 +241,12 @@ void apply_key(const KeyEvent& match, Client* cl, bool raw)
         }
         return;
     }
-    if (cl && DEBUGKEY != 0 &&  (match.type == type_unicode || match.type == type_key) && match.unicode == DEBUGKEY)
+    if (cl && DEBUGKEY != 0 && (match.type == type_unicode || match.type == type_key) && match.unicode == DEBUGKEY)
     {
         // toggle debug mode
         cl->m_debug_enabled ^= true;
     }
-    if (SERVERDEBUGKEY != 0 &&  (match.type == type_unicode || match.type == type_key) && match.unicode == SERVERDEBUGKEY)
+    if (SERVERDEBUGKEY != 0 && (match.type == type_unicode || match.type == type_key) && match.unicode == SERVERDEBUGKEY)
     {
         // toggle debug mode
         server_debug_out ^= true;
@@ -183,23 +276,6 @@ void apply_key(const KeyEvent& match, Client* cl, bool raw)
                 Gui::setViewCoords(dst->ui.m_stored_viewcoord.x, dst->ui.m_stored_viewcoord.y, dst->ui.m_stored_viewcoord.z);
             }
         }
-    }
-    
-    std::set<df::interface_key> keys;
-    if (match.type == type_key && match.unicode != 0){
-        // this event match contains both sdl and unicode data, match both
-        KeyEvent sdlMatch = match;
-        sdlMatch.unicode = 0;
-        keys  = keybindings.toInterfaceKey(sdlMatch);
-
-        KeyEvent unicodeMatch;
-        unicodeMatch.unicode = match.unicode;
-        unicodeMatch.type = type_unicode;
-        unicodeMatch.mod = 0;
-        std::set<df::interface_key> unicodeKeys = keybindings.toInterfaceKey(unicodeMatch);
-        keys.insert(unicodeKeys.begin(), unicodeKeys.end());
-    }else {
-        keys  = keybindings.toInterfaceKey(match);
     }
 
     // apply commands until apply_command returns true
@@ -311,6 +387,11 @@ static bool update_multiplexing(Client* client)
                 *_out << "Success with warning for user " << current_user_state_index << " on screen " << get_current_menu_id() << std::endl;
                 *_out << restore_state_error << endl;
                 _out->color(COLOR_RESET);
+            }
+            
+            if (CHAT_ENABLED && id == &df::viewscreen_dwarfmodest::_identity)
+            {
+                g_chatlog.tick(client);
             }
             
             // update screen except if it would cause a tick.

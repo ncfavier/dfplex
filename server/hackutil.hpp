@@ -79,6 +79,10 @@ inline bool contains(const std::string& str, const std::string& infix)
     return str.find(infix) != std::string::npos;
 }
 
+// like the word warp in MiscUtils, but respects existing line endings.
+// TODO: use c++17's std::string_view instead.
+std::vector<std::string> word_wrap_lines(const std::string& str, uint16_t width);
+
 template<class T>
 inline bool contains(const std::set<T>& container, const T& value)
 {

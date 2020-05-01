@@ -399,6 +399,54 @@ std::string historical_figure_info(int32_t figure_id)
     return ss.str();
 }
 
+std::vector<std::string> word_wrap_lines(const std::string& str, uint16_t width)
+{
+    std::vector<std::string> out;
+    size_t _end = 0;
+    while (_end < str.length())
+    {
+        size_t start = _end;
+        size_t last_break = _end;
+        while (_end - start < width)
+        {
+            if (str[_end] == '\n')
+            {
+                last_break = _end;
+                break;
+            }
+            else if (str[_end] == ' ')
+            {
+                last_break = _end;
+            }
+            ++_end;
+            if (_end == str.length())
+            {
+                last_break = _end;
+                break;
+            }
+        }
+        if (last_break == start)
+        {
+            last_break = _end;
+        }
+        out.emplace_back(str.substr(start, last_break - start));
+        _end = last_break;
+        if (_end < str.length())
+        {
+            if (str[_end] == '\n')
+            {
+                ++_end;
+            }
+            while (_end < str.length() && str[_end] == ' ')
+            {
+                ++_end;
+            }
+        }
+    }
+    
+    return out;
+}
+
 // returns a unique string representing the current menu.
 menu_id get_current_menu_id()
 {

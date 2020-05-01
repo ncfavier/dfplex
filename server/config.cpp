@@ -11,12 +11,16 @@ uint16_t PORT = 1234;
 uint16_t STATICPORT = 8000;
 std::string STATICDIR = "hack/www";
 uint32_t MULTIPLEXKEY = 0;
+uint32_t CHATKEY = 0;
 uint32_t NEXT_CLIENT_POS_KEY = 0;
 uint32_t PREV_CLIENT_POS_KEY = 0;
 bool CURSOR_IS_TEXT = false;
 PauseBehaviour PAUSE_BEHAVIOUR = PauseBehaviour::EXPLICIT;
 uint32_t DEBUGKEY = 0;
 uint32_t SERVERDEBUGKEY = 0;
+uint16_t MESSAGE_TIME = 60 * 8;
+uint16_t MESSAGE_FLASH_TIME = 10;
+size_t MAX_MESSAGE_COUNT = 0x10000;
 bool CHAT_ENABLED = true;
 bool MULTISIZE = true;
 std::string SECRET = ""; // auth is disabled by default
@@ -122,6 +126,10 @@ bool load_text_file()
         }
         if (key == "MULTIPLEXKEY") {
             MULTIPLEXKEY = std::stol(val);
+		}
+        if (key == "CHATKEY") {
+            CHATKEY = std::stol(val);
+            CHAT_ENABLED = !!CHATKEY;
 		}
 	}
 	return true;

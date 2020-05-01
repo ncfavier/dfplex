@@ -113,6 +113,7 @@ struct RestoreKey
     RestoreKey& operator=(RestoreKey&&)=default;
 };
 
+// information to be fed to df to restore ui per-client.
 struct UIState
 {
     // pressing these keys from dwarfmode/Default will restore the UI state of the user.
@@ -206,6 +207,10 @@ struct UIState
     
     std::string debug_trace() const;
     
+    // dfplex-specific UI information
+    std::string m_dfplex_chat_message;
+    bool m_dfplex_chat_entering = false;
+    
     // resets most UI state
     void reset()
     {
@@ -239,6 +244,8 @@ struct UIState
         m_list_cursor.clear();
         m_civ_x = -1;
         m_civ_y = -1;
+        m_dfplex_chat_entering = false;
+        m_dfplex_chat_message = "";
     }
     
     // makes the UI ready to handle a new plex re-entry.
@@ -315,6 +322,7 @@ typedef ClientTile screenbuf_t[256 * 256];
 struct Client {
     std::string addr;
     std::string nick;
+    bool is_admin;
     
     std::string info_message; // this string is displayed to the user.
     
@@ -325,11 +333,9 @@ struct Client {
     screenbuf_t sc;
     int32_t dimx=0, dimy=0;
     int32_t desired_dimx=80, desired_dimy=25;
-
-	bool is_admin;
     
+    // pending keypresses from client.
     std::queue<KeyEvent> keyqueue;
-    size_t keyqueue_position = 0;
     
     UIState ui;
 };

@@ -1,5 +1,7 @@
 This is the DFPlex config file, same syntax as DF raws.
 
+All (keyboard) keys are given as their ASCII encoding. A value of 0 will disable that key.
+
 (Don't forget to forward your ports if you're not playing on LAN.)
 
 The port the static site will be served on. Players should connect to this port in their web browsers.
@@ -27,8 +29,8 @@ This key toggles multiplex mode.
 This key toggles client's debug output
 [DEBUGKEY:124]
 
-This key toggles server's debug output (written to out stream)
-[SERVERDEBUGKEY:96]
+This key toggles server's debug output
+[SERVERDEBUGKEY:0] (196)
 
 Zoom to next client position (from default view)
 [PREV_CLIENT_POS_KEY:91]
@@ -44,6 +46,9 @@ Pause behaviour:
         from *any* menu that doesn't use the key.
         *Experimental.*
 [PAUSE:EXPLICIT]
+
+Set this to 0 to disable in-game chat.
+[CHATKEY:96]
 
 Display the cursor X as text?
 [CURSOR_IS_TEXT:1]

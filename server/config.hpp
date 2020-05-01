@@ -31,8 +31,12 @@ extern uint32_t PREV_CLIENT_POS_KEY;
 extern bool CURSOR_IS_TEXT;
 extern std::string SECRET;
 extern PauseBehaviour PAUSE_BEHAVIOUR;
+extern uint32_t CHATKEY;
 extern bool CHAT_ENABLED;
 extern bool MULTISIZE;
+extern uint16_t MESSAGE_TIME;
+extern uint16_t MESSAGE_FLASH_TIME;
+extern size_t MAX_MESSAGE_COUNT;
 
 #define WF_VERSION "DFPlex-v0.2"
 #define WF_INVALID "DFPlex-invalid"

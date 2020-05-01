@@ -94,6 +94,8 @@ void write_to_screen(int x, int y, std::string s, uint8_t fg=7, uint8_t bg=0, bo
             tile.pen.bold = bold;
             tile.pen.bg = bg;
             tile.pen.fg = fg;
+            tile.is_map = false;
+            tile.is_text = true;
         }
     }
 }
@@ -338,6 +340,23 @@ void modify_screenbuf(Client* cl)
                         ++y;
                     }
                     break;
+                case 3:
+                    // chat key
+                    if (!plexing) break;
+                    if (CHAT_ENABLED && CHATKEY)
+                    {
+                        std::string s = key_display_name(CHATKEY);
+                    
+                        write_to_screen(x, y, s, 4, 0, 1);
+                        
+                        write_to_screen(x + s.length(), y, 
+                            ": Send Chat Message",
+                            7, 0, 0
+                        );
+                        
+                        ++y;
+                    }
+                    break;
                 }
             }
         }
@@ -366,9 +385,64 @@ void modify_screenbuf(Client* cl)
     int32_t vx, vy, vz;
     Gui::getViewCoords(vx, vy, vz);
     
-    // cursors
     if (id == &df::viewscreen_dwarfmodest::_identity)
     {
+        // chat messages
+        if (CHAT_ENABLED)
+        {
+            uint32_t x = 1;
+            uint32_t y = gps->dimy - 1;
+            const uint32_t width = 23;
+            const uint32_t top = gps->dimy - 13;
+            if (cl->ui.m_dfplex_chat_entering)
+            {
+                std::stringstream ss;
+                ss << cl->ui.m_dfplex_chat_message;
+                
+                // cursor
+                if ((frames_elapsed / 24) % 2)
+                    ss << static_cast<char>(219);
+                else
+                    ss << '_';
+                    
+                std::vector<std::string> lines = word_wrap_lines(ss.str(), width);
+                y -= lines.size();
+                for (size_t i = 0; i < lines.size(); ++i)
+                {
+                    write_to_screen(x, y + i, lines.at(i), 0, 0, 1);
+                }
+            }
+            
+            // bevel applies to messages other than the currently-typing one.
+            x += 1;
+            
+            // show other messages
+            for (size_t i = g_chatlog.m_messages.size(); i --> g_chatlog.m_active_message_index;)
+            {
+                ChatMessage& message = g_chatlog.m_messages.at(i);
+                
+                if (message.is_expired(cl)) break;
+                
+                const bool flash = message.is_flash(cl);
+                
+                std::vector<std::string> lines = word_wrap_lines(message.m_contents, width);
+                y -= lines.size() + 1;
+                
+                if (y < top)
+                {
+                    message.expire(cl);
+                }
+                else
+                {
+                    for (size_t i = 0; i < lines.size(); ++i)
+                    {
+                        write_to_screen(x, y + i, lines.at(i), (flash ? 7 : 0), 0, 1);
+                    }
+                }
+            }
+        }
+        
+        // cursors
         int32_t my_cx = cl->ui.m_cursorcoord.x - vx + K_BEVEL;
         int32_t my_cy = cl->ui.m_cursorcoord.y - vy + K_BEVEL;
         int32_t my_cz = cl->ui.m_cursorcoord.z - vz;
