@@ -87,7 +87,7 @@ void write_to_screen(int x, int y, std::string s, uint8_t fg=7, uint8_t bg=0, bo
 {
     for (size_t i = 0; i < s.length(); ++i)
     {
-        if (x + i < gps->dimx && y < gps->dimy)
+        if (x + i < gps->dimx && y < gps->dimy && x + i >= 0 && y >= 0)
         {
             ClientTile& tile = screentile(x + i, y);
             tile.pen.ch = s.at(i);
@@ -358,9 +358,44 @@ void modify_screenbuf(Client* cl)
                         write_to_screen(x, y, s, 4, 0, 1);
                         
                         write_to_screen(x + s.length(), y, 
-                            ": Cycle Zoom To Client",
+                            (cl->ui.m_stored_camera_return)
+                                ? ": Return to last Position"
+                                : ": Follow Client",
                             7, 0, 0
                         );
+                        
+                        ++y;
+                        
+                        if (!cl->ui.m_stored_camera_return)
+                        {
+                            std::string follow_name = "";
+                            uint8_t follow_colour = 7;
+                            bool follow_bold = false;
+                            if (cl->ui.m_following_client && cl->ui.m_client_screen_cycle.get() && cl->ui.m_client_screen_cycle != cl->id)
+                            {
+                                follow_name = cl->ui.m_client_screen_cycle->nick;
+                                follow_colour = cl->ui.m_client_screen_cycle->nick_colour;
+                                if (!follow_name.length())
+                                {
+                                    follow_name = "(Anonymous)";
+                                    // don't tell anyone about this.
+                                    follow_colour = 1 +
+                                        reinterpret_cast<uintptr_t>(cl->ui.m_client_screen_cycle.get()) % 7;
+                                }
+                                else
+                                {
+                                    follow_name = "\"" + follow_name + "\"";
+                                    follow_bold = true;
+                                }
+                                
+                                // triangles flanking name
+                                follow_name = std::string(1, 16) + follow_name + std::string(1,17);
+                            }
+                            write_to_screen((dims.menu_x2 + dims.menu_x1) / 2 - follow_name.length() / 2, y, 
+                                follow_name,
+                                follow_colour, 0, follow_bold
+                            );
+                        }
                         
                         ++y;
                     }
@@ -401,7 +436,7 @@ void modify_screenbuf(Client* cl)
                         else
                         {
                             write_to_screen(x, y, 
-                                "(Set User Name to Chat)",
+                                "(Set username to chat)",
                                 7, 0, 0
                             );
                         }
@@ -435,7 +470,7 @@ void modify_screenbuf(Client* cl)
                     cl->id->nick_colour, 0, 1
                 );
                 
-                y+= 1;
+                y+= 2;
                 write_to_screen(x + 8, y, 
                     ": Set Colour",
                     7, 0, 0
@@ -449,6 +484,16 @@ void modify_screenbuf(Client* cl)
                 }
                 
                 y += 2;
+                
+                if (CHAT_ENABLED)
+                {
+                    write_to_screen(x, y, "H", 4, 0, 1);
+                    write_to_screen(x + 1, y, 
+                        (cl->ui.m_dfplex_hide_chat) ? ": Show Chat" : ": Hide Chat",
+                        7, 0, 0
+                    );
+                    y += 1;
+                }
             }
         }
     }
@@ -481,19 +526,30 @@ void modify_screenbuf(Client* cl)
         // chat messages
         if (CHAT_ENABLED)
         {
-            uint32_t x = 1;
-            uint32_t y = gps->dimy - 1;
+            int32_t x = 1;
+            int32_t y = gps->dimy - 1;
             const uint32_t width = CHAT_WIDTH;
-            const uint32_t top = gps->dimy - 1 - CHAT_HEIGHT;
+            int32_t top = gps->dimy - 1 - CHAT_HEIGHT;
+            bool hide_expired = true;
+            
+            bool hide_all = (cl->ui.m_dfplex_hide_chat);
+            if (cl->ui.m_dfplex_chat_entering)
+            {
+                top = 1;
+                hide_expired = false;
+                hide_all = false;
+            }
+            
             if (cl->ui.m_dfplex_chat_entering)
             {
                 std::stringstream ss;
                 ss << cl->ui.m_dfplex_chat_message;
-                
-                // cursor
-                ss << blink_cursor();
                     
                 std::vector<std::string> lines = word_wrap_lines(ss.str(), width);
+                
+                if (lines.empty()) lines.emplace_back();
+                lines.back() += blink_cursor();
+                
                 y -= lines.size();
                 
                 uint8_t fgcol = 0;
@@ -514,15 +570,14 @@ void modify_screenbuf(Client* cl)
                 }
             }
             
-            // bevel applies to messages other than the currently-typing one.
-            x += 1;
-            
             // show other messages
-            for (size_t i = g_chatlog.m_messages.size(); i --> g_chatlog.m_active_message_index;)
+            for (size_t i = g_chatlog.m_messages.size(); i --> 0;)
             {
+                if (hide_all) break;
+                
                 ChatMessage& message = g_chatlog.m_messages.at(i);
                 
-                if (message.is_expired(cl)) break;
+                if (hide_expired && message.is_expired(cl)) break;
                 
                 const bool flash = message.is_flash(cl);
                 
@@ -532,6 +587,9 @@ void modify_screenbuf(Client* cl)
                 if (y < top)
                 {
                     message.expire(cl);
+                    
+                    // early out
+                    if (i < g_chatlog.m_active_message_index) break;
                 }
                 else
                 {

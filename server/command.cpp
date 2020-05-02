@@ -368,7 +368,6 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
                 {
                     cursornudge(cl);
                     
-                    
                     // error out if we don't arrive here.
                     post_menu_id = "dwarfmode/Build/Material/Groups";
                     post_menu_depth = get_vs_depth(vs);

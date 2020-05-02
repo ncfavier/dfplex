@@ -733,3 +733,14 @@ int32_t renaming_squad_id()
     }
     return -1;
 }
+
+void center_view_on_coord(const Coord& _c)
+{
+    Coord c = _c;
+    auto dims = DFHack::Gui::getDwarfmodeViewDims();
+    c.x -= (dims.map_x2 - dims.map_x1) / 2;
+    c.y -= (dims.y2 - dims.y1) / 2;
+    if (c.x < 0) c.x = 0;
+    if (c.y < 0) c.y = 0;
+    Gui::setViewCoords(c.x, c.y, c.z);
+}

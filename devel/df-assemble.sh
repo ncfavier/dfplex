@@ -126,7 +126,7 @@ if [ $? -eq 0 ]
 then
     makeprogram=ninja
 fi
-cmake .. -DCMAKE_INSTALL_PREFIX=../$plexdir/$dfdir && $makeprogram install -j8
+cmake .. -DCONSOLE_NO_CATCH=ON -DCMAKE_INSTALL_PREFIX=../$plexdir/$dfdir && $makeprogram install -j8
 if [ $? -ne 0 ]
 then
     echo "installation failed."

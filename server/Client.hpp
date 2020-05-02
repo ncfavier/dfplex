@@ -20,48 +20,13 @@
 #include <set>
 #include <memory>
 
-struct Coord
+struct ClientIdentity
 {
-    int32_t x, y, z;
-    Coord()
-        : x(0)
-        , y(0)
-        , z(0)
-    { }
-    Coord(int32_t x, int32_t y, int32_t z)
-        : x(x)
-        , y(y)
-        , z(z)
-    { }
-    Coord(const Coord&)=default;
-    Coord(Coord&&)=default;
-    Coord(const df::coord& c)
-        : x(c.x)
-        , y(c.y)
-        , z(c.z)
-    { }
-    Coord& operator=(const Coord&)=default;
-    Coord& operator=(Coord&&)=default;
-    operator bool() const
-    {
-        return x != 0 || y != 0 || z != 0;
-    }
-    Coord operator-(const Coord& other) const
-    {
-        return{ x-other.x, y-other.y, z-other.z };
-    }
-    Coord operator+(const Coord& other) const
-    {
-        return{ x+other.x, y+other.y, z+other.z };
-    }
-    bool operator!=(const Coord& other) const
-    {
-        return x != other.x || y != other.y || z != other.z;
-    }
+    std::string addr;
+    std::string nick;
+    uint8_t nick_colour = 0;
+    bool is_admin = false;
 };
-
-// returns true if a describes b. (e.g if a == b.)
-bool menu_id_matches(const menu_id& a, const menu_id& b);
 
 // a command which is part of the algorithm for
 // restoring menu state.
@@ -135,9 +100,14 @@ struct UIState
     Coord m_viewcoord;
     
     // for switching to with the [ ] keys.
-    bool m_stored_viewcoord_skip = false; 
+    bool m_stored_viewcoord_skip = false;
     bool m_stored_camera_return = false; // return after an event is set; remove this eventually...?
     Coord m_stored_viewcoord;
+    bool m_following_client = false;
+    std::shared_ptr<ClientIdentity> m_client_screen_cycle;
+    
+    // view dimensions
+    int32_t m_map_dimx=-1, m_map_dimy=-1;
     
     bool m_cursorcoord_set = false;
     Coord m_cursorcoord;
@@ -189,9 +159,6 @@ struct UIState
     // stabilizes list-menus (e.g announcements, reports)
     // one per viewscreen on the stack.
     std::vector<int32_t> m_list_cursor;
-
-    // client screen cycle
-    int32_t m_client_screen_cycle = 0;
     
     // resize state
     bool m_building_in_resize = false;
@@ -213,6 +180,7 @@ struct UIState
     bool m_dfplex_chat_entering = false;
     bool m_dfplex_chat_config = false;
     bool m_dfplex_chat_name_entering = false;
+    bool m_dfplex_hide_chat = false;
     
     // resets most UI state
     void reset()
@@ -233,6 +201,7 @@ struct UIState
         m_building_resize_radius = 4;
         m_stored_camera_return = false;
         m_stored_viewcoord_skip = false;
+        m_following_client = false;
         m_construction_plan.clear();
         m_unit_view_mode = df::ui_unit_view_mode::General;
         m_show_combat = true;
@@ -251,6 +220,7 @@ struct UIState
         m_dfplex_chat_message = "";
         m_dfplex_chat_config = false;
         m_dfplex_chat_name_entering = false;
+        m_map_dimx = m_map_dimy = -1;
     }
     
     // makes the UI ready to handle a new plex re-entry.
@@ -323,14 +293,6 @@ struct ClientTile
 
 // array of all tiles on the screen
 typedef ClientTile screenbuf_t[256 * 256];
-
-struct ClientIdentity
-{
-    std::string addr;
-    std::string nick;
-    uint8_t nick_colour = 0;
-    bool is_admin = false;
-};
 
 struct Client {
     std::shared_ptr<ClientIdentity> id{ new ClientIdentity() };

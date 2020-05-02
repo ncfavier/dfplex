@@ -35,5 +35,7 @@ extern conn_map clients;
 void wsthreadmain(void*);
 
 size_t get_client_count();
-Client* get_client(size_t n); // retrieves nth client.
+Client* get_client(int32_t n); // retrieves nth client.
+Client* get_client(const ClientIdentity*); // retrieves client by identity
+int get_client_index(const ClientIdentity*); // retrieves client index by identity (or -1 if not found)
 Client* get_client(conn_hdl hdl); // retrieves client from connection

@@ -20,10 +20,57 @@
 #include <string>
 #include <sstream>
 
+struct Coord
+{
+    int32_t x, y, z;
+    Coord()
+        : x(0)
+        , y(0)
+        , z(0)
+    { }
+    Coord(int32_t x, int32_t y, int32_t z)
+        : x(x)
+        , y(y)
+        , z(z)
+    { }
+    Coord(const Coord&)=default;
+    Coord(Coord&&)=default;
+    Coord(const df::coord& c)
+        : x(c.x)
+        , y(c.y)
+        , z(c.z)
+    { }
+    
+    Coord& operator=(const Coord&)=default;
+    Coord& operator=(Coord&&)=default;
+    
+    // due to an unknown bug, all operator commands need to be explicitly invoked
+    // (e.g. a.operator-(b);)
+    operator bool() const
+    {
+        return x != 0 || y != 0 || z != 0;
+    }
+    Coord operator-(const Coord& other) const
+    {
+        return{ x-other.x, y-other.y, z-other.z };
+    }
+    Coord operator+(const Coord& other) const
+    {
+        return{ x+other.x, y+other.y, z+other.z };
+    }
+    bool operator!=(const Coord& other) const
+    {
+        return x != other.x || y != other.y || z != other.z;
+    }
+};
+
 typedef std::string menu_id;
 static const menu_id K_NOCHECK = "*";
 
 menu_id get_current_menu_id();
+
+// returns true if a describes b. (e.g if a == b.)
+bool menu_id_matches(const menu_id& a, const menu_id& b);
 
 #define UPDATE_VS(vs, id) {vs = DFHack::Gui::getCurViewscreen(true); id = df::virtual_identity::get(vs); }
 
@@ -140,6 +187,8 @@ inline bool is_designation_mode(df::ui_sidebar_mode mode)
     }
     return false;
 }
+
+void center_view_on_coord(const Coord&);
 
 bool is_siege();
 

@@ -144,6 +144,7 @@ bool load_text_file()
     
     // conditionals
     if (!CHAT_NAME_KEY) CHAT_NAME_REQUIRED = false;
+    if (!CHAT_NAME_KEY || !CHATKEY) CHAT_ENABLED = false;
     
 	return true;
 }

@@ -270,6 +270,10 @@ void apply_key(const KeyEvent& match, Client* cl, bool raw)
             {
                 cl->ui.m_dfplex_chat_name_entering = true;
             }
+            else if ((match.type == type_unicode || match.type == type_key) && match.unicode == 'H')
+            {
+                cl->ui.m_dfplex_hide_chat ^= true;
+            }
             for (int32_t i = 0; i < 8; ++i)
             {
                 if ((match.type == type_unicode || match.type == type_key) && match.unicode == '0' + i)
@@ -345,25 +349,53 @@ void apply_key(const KeyEvent& match, Client* cl, bool raw)
     if (is_at_root() && !raw && cl)
     {
         // jump to client position
-        int32_t client_id = cl->ui.m_client_screen_cycle;
+        int32_t client_id = get_client_index(cl->ui.m_client_screen_cycle.get());
+        if (client_id == -1) client_id = get_client_index(cl->id.get());
+        int32_t delta = 0;
         if (NEXT_CLIENT_POS_KEY != 0 &&  (match.type == type_unicode || match.type == type_key) && match.unicode == NEXT_CLIENT_POS_KEY)
-            client_id++;
+            delta++;
         if (PREV_CLIENT_POS_KEY != 0 &&  (match.type == type_unicode || match.type == type_key) && match.unicode == PREV_CLIENT_POS_KEY)
-            client_id++;
-        if (client_id != cl->ui.m_client_screen_cycle)
+            delta--;
+        
+        cl->ui.m_following_client = false;
+            
+        if (delta != 0)
         {
+            const size_t client_count = get_client_count();
             cl->ui.m_stored_viewcoord_skip = true;
-            cl->ui.m_client_screen_cycle = client_id;
-            client_id %= get_client_count();
-            Client* dst = get_client(client_id);
+            
+            Client* dst;
+            
             if (cl->ui.m_stored_camera_return)
             {
+                // return to our own position
                 dst = cl;
                 cl->ui.m_stored_camera_return = false;
             }
-            if (dst->ui.m_viewcoord_set && dst->ui.m_viewcoord.x >= 0)
+            else
             {
-                Gui::setViewCoords(dst->ui.m_stored_viewcoord.x, dst->ui.m_stored_viewcoord.y, dst->ui.m_stored_viewcoord.z);
+                // don't change client_id if we're not currently following a client, unless client_id is set to ourself.
+                //if (client_id != get_client_index(cl->id.get()) && !cl->ui.m_following_client) delta = 0;
+                
+                // advance to next/prev client id
+                client_id = (client_id + delta + client_count) % client_count;
+                
+                // follow the given client.
+                dst = get_client(client_id);
+                if (dst)
+                {
+                    cl->ui.m_client_screen_cycle = dst->id;
+                    cl->ui.m_following_client = true;
+                }
+            }
+            
+            // zoom to client right now
+            // (This is important esp. if the dst == cl)
+            if (dst && dst->ui.m_viewcoord_set && dst->ui.m_viewcoord.x >= 0)
+            {
+                center_view_on_coord(dst->ui.m_stored_viewcoord.operator+(
+                    {dst->ui.m_map_dimx/2, dst->ui.m_map_dimy/2, 0})
+                );
             }
         }
     }
@@ -775,11 +807,12 @@ void on_report(color_ostream &out, void* v)
                     
                     client->ui.m_viewcoord_set = true;
                     // go to coord - map dimensions/2 to center.
-                    client->ui.m_viewcoord = report->pos - Coord{ (dims.map_x2 - dims.map_x1) / 2, (dims.map_y2 - dims.map_y1) / 2, 0};
+                    client->ui.m_viewcoord = report->pos.operator-(Coord{ (dims.map_x2 - dims.map_x1) / 2, (dims.map_y2 - dims.map_y1) / 2, 0});
                     client->ui.m_viewcoord.z = report->pos.z; // why is this needed?
                     if (client->ui.m_viewcoord.x < 0) client->ui.m_viewcoord.x = 0;
                     if (client->ui.m_viewcoord.y < 0) client->ui.m_viewcoord.y = 0;
                     client->ui.m_stored_camera_return = true;
+                    client->ui.m_following_client = false;
                 }
             }
         }

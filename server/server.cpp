@@ -96,8 +96,10 @@ size_t get_client_count()
     return clients.size();
 }
 
-Client* get_client(size_t n)
+Client* get_client(int32_t n)
 {
+    if (n < 0) return nullptr;
+    
     auto it = clients.begin();
     for (size_t i = 0; i < n; ++i)
     {
@@ -107,6 +109,36 @@ Client* get_client(size_t n)
     if (it == clients.end()) return nullptr;
     assert(it->second);
     return it->second;
+}
+
+Client* get_client(const ClientIdentity* id)
+{
+    if (!id) return nullptr;
+    auto it = clients.begin();
+    for (size_t i = 0; true; ++i)
+    {
+        if (it == clients.end()) return nullptr;
+        if (it->second->id.get() == id) return it->second;
+        it++;
+    }
+    
+    // paranoia
+    return nullptr;
+}
+
+int get_client_index(const ClientIdentity* id)
+{
+    if (!id) return -1;
+    auto it = clients.begin();
+    for (size_t i = 0; true; ++i)
+    {
+        if (it == clients.end()) return -1;
+        if (it->second->id.get() == id) return i;
+        it++;
+    }
+    
+    // paranoia
+    return -1;
 }
 
 Client* get_client(conn_hdl hdl)

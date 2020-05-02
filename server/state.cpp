@@ -94,11 +94,24 @@ static void getOptCoord(bool& io_set, Coord& o_coord, getcoords_t getcoords)
 static void restore_cursor(Client* client)
 {
     UIState& ui = client->ui;
-    // restore cursor position
+    
+    // sets viewcoords
     if (ui.m_viewcoord_set)
     {
         Gui::setViewCoords(ui.m_viewcoord.x, ui.m_viewcoord.y, ui.m_viewcoord.z);
     }
+    if (ui.m_following_client && ui.m_client_screen_cycle.get())
+    {
+        Client* dst = get_client(ui.m_client_screen_cycle.get());
+        if (dst)
+        {
+            center_view_on_coord(dst->ui.m_stored_viewcoord.operator+(
+                {dst->ui.m_map_dimx/2, dst->ui.m_map_dimy/2, 0})
+            );
+        }
+    }
+    
+    // sets cursor coords
     if (ui.m_cursorcoord_set)
     {
         Gui::setCursorCoords(ui.m_cursorcoord.x, ui.m_cursorcoord.y, ui.m_cursorcoord.z);
@@ -510,7 +523,7 @@ bool tradelist_advance(Client* client)
     return false;
 }
 
-// restores state for client
+// restores UI/view state for client
 // -- preconditions --
 // must be in the dfmode root menu.
 // -- return value --
@@ -710,22 +723,25 @@ void capture_post_state(Client* client)
     
     if (!ui.m_freeze_cursor)
     {
-        const bool prev_set = ui.m_viewcoord_set;
-        const Coord prev_coord = ui.m_viewcoord;
-        getOptCoord(ui.m_viewcoord_set, ui.m_viewcoord, Gui::getViewCoords);
-        
-        // update stored viewcoord if the camera moves.
-        if (!prev_set)
+        if (!ui.m_following_client)
         {
-            ui.m_stored_viewcoord = ui.m_viewcoord;
+            const bool prev_set = ui.m_viewcoord_set;
+            const Coord prev_coord = ui.m_viewcoord;
+            getOptCoord(ui.m_viewcoord_set, ui.m_viewcoord, Gui::getViewCoords);
+            
+            // update stored viewcoord if the camera moves.
+            if (!prev_set)
+            {
+                ui.m_stored_viewcoord = ui.m_viewcoord;
+            }
+            // For some reason, explicitly using operator!= is required here.
+            else if (ui.m_viewcoord.operator!=(prev_coord) && !ui.m_stored_viewcoord_skip)
+            {
+                ui.m_stored_viewcoord = ui.m_viewcoord;
+                ui.m_stored_camera_return = false;
+            }
+            ui.m_stored_viewcoord_skip = false;
         }
-        // For some reason, explicitly using operator!= is required here.
-        else if (ui.m_viewcoord.operator!=(prev_coord) && !ui.m_stored_viewcoord_skip)
-        {
-            ui.m_stored_viewcoord = ui.m_viewcoord;
-            ui.m_stored_camera_return = false;
-        }
-        ui.m_stored_viewcoord_skip = false;
         
         getOptCoord(ui.m_cursorcoord_set, ui.m_cursorcoord, Gui::getCursorCoords);
         getOptCoord(ui.m_designationcoord_set, ui.m_designationcoord, Gui::getDesignationCoords);
@@ -747,6 +763,18 @@ void capture_post_state(Client* client)
     ui.m_designate_marker = df::global::ui_sidebar_menus->designation.marker_only;
     ui.m_designate_priority_set = df::global::ui_sidebar_menus->designation.priority_set;
     ui.m_designate_priority = df::global::ui_sidebar_menus->designation.priority;
+    
+    // map view dimensions
+    if (is_dwarf_mode())
+    {
+        auto dims = Gui::getDwarfmodeViewDims();
+        ui.m_map_dimx = dims.map_x2 - dims.map_x1;
+        ui.m_map_dimy = dims.y2 - dims.y1;
+    }
+    else
+    {
+        ui.m_map_dimx = ui.m_map_dimy = -1;
+    }
     
     // burrows
     ui.m_brush_erasing = df::global::ui->burrows.brush_erasing;
