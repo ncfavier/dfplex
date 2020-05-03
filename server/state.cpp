@@ -711,8 +711,8 @@ RestoreResult restore_state(Client* client)
 }
 
 bool isBuildMenu(){
-    using df::global::ui_build_selector;
-    return ui_build_selector;
+    using df::global::ui;
+    return df::global::ui->main.mode == df::enums::ui_sidebar_mode::Build;
 }
 
 bool isBuildPositionMenu(){
@@ -781,13 +781,13 @@ void capture_post_state(Client* client)
         menu_id menu =  get_current_menu_id();
 
         if (ui.m_cursorcoord_set && id == &df::viewscreen_dwarfmodest::_identity
-            && df::global::ui->main.mode == df::enums::ui_sidebar_mode::Build
+            && isBuildMenu()
             && isBuildPositionMenu())
         {
             // save and restore build menu cursor
             ui.m_buildcoord_set = true;
             ui.m_buildcoord =  ui.m_cursorcoord;
-        } else if (!isBuildMenu()){
+        } else if (id != &df::viewscreen_dwarfmodest::_identity || !isBuildMenu()){
             ui.m_buildcoord_set = false;
         }
 
