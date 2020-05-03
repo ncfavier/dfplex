@@ -44,7 +44,6 @@ console.log(wsUri);
 var active = false;
 var lastFrame = 0;
 
-var tilewh = 16; // TODO: remove vars
 var tilew  = 16;
 var tileh  = 16;
 
@@ -195,19 +194,19 @@ function renderUpdate(ctx, data, offset) {
 	var s;
 	var bg;
 	var fg;
-	var tilew2 = tilew * tilew;
-	var tileh2 = tileh * tileh;
+	var tilew2 = tilew << 4;
+	var tileh2 = tileh << 4;
 
 	for (k = offset; k < data.length; k += 5) {
 		x = data[k + 0];
 		y = data[k + 1];
 
 		s = data[k + 2];
-		bg = data[k + 3] % tilew;
+		bg = data[k + 3] & 0xf;
 		fg = data[k + 4];
 
-		var bg_x = ((bg % 4) * tilew2) + 15 * tilew;
-		var bg_y = (Math.floor(bg / 4) * tileh2) + 15 * tileh;
+		var bg_x = ((bg & 3) * tilew2) + 15 * tilew;
+		var bg_y = ((bg >> 2) * tileh2) + 15 * tileh;
 		ctx.drawImage(
 			// source image (tileset)
 			cd,
@@ -226,8 +225,8 @@ function renderUpdate(ctx, data, offset) {
 			ovr.push(k);
 			continue;
 		}
-		var fg_x = (s % 16) * tilew + ((fg % 4) * tilew2);
-		var fg_y = Math.floor(s / 16) * tileh + (Math.floor(fg / 4) * tileh2);
+		var fg_x = (s & 0xf) * tilew + ((fg & 3) * tilew2);
+		var fg_y = (s >> 4) * tileh + ((fg >> 2) * tileh2);
 		ctx.drawImage(
 			// source image (tileset)
 			cd,
@@ -248,8 +247,8 @@ function renderUpdate(ctx, data, offset) {
 		bg = data[k + 3];
 		fg = data[k + 4];
 
-		var i = (s % 16) * tilew + ((fg % 4) * tilew2);
-		var j = Math.floor(s / 16) * tileh + (Math.floor(fg / 4) * tileh2);
+		var i = (s & 0xf) * tilew + ((fg & 3) * tilew2);
+		var j = (s >> 4) * tileh + ((fg >> 2) * tileh2);
 		ctx.drawImage(
 			// source image (textset)
 			ct,
@@ -269,8 +268,8 @@ function renderUpdate(ctx, data, offset) {
 		bg = data[k + 3];
 		fg = data[k + 4];
 
-		var i = (s % 16) * tilew + ((fg % 4) * tilew2);
-		var j = Math.floor(s / 16) * tileh + (Math.floor(fg / 4) * tileh2);
+		var i = (s & 0xf) * tilew + ((fg & 3) * tilew2);
+		var j = (s >> 4) * tileh + ((fg >> 2) * tileh2);
 		ctx.drawImage(
 			// source image (textset)
 			covr,
@@ -283,11 +282,11 @@ function renderUpdate(ctx, data, offset) {
 }
 
 function updateCanvasDOM() {
-	canvas.style.width  = ""
-	canvas.style.height  = ""
+	canvas.style.width = "";
+	canvas.style.height = "";
 	
 	var maxw = canvas.parentNode.offsetWidth;
-    var maxh = canvas.parentNode.offsetHeight - document.getElementById('status-id').offsetHeight;
+	var maxh = canvas.parentNode.offsetHeight - document.getElementById('status-id').offsetHeight;
 	
 	console.log(canvas.width + "x" + canvas.height + " in " + maxw + "x" + maxh);
 		
@@ -379,32 +378,50 @@ function onMessage(evt) {
 	}
 }
 
-// FIXME: tilewh-ify
 function colorize(img, cnv) {
+	var tsw = tilew << 4;
+	var tsh = tileh << 4;
+	cnv.width = tilew << 6;
+	cnv.height = tileh << 6;
+
 	var ctx3 = cnv.getContext('2d');
 
-	for (var j = 0; j < 4; j++) {
-		for (var i = 0; i < 4; i++) {
-			var c = j * 4 + i;
+	for (var j = 0, j2 = 0; j < 4; j++, j2 += tsh) {
+		for (var i = 0, i2 = 0; i < 4; i++, i2 += tsw) {
+			// offset into colors array
+			var c = (j * 4 + i) * 3;
 
-			ctx3.drawImage(img, i * 256, j * 256);
+			if (tsw === img.width && tsh === img.height) {
+				ctx3.drawImage(img, i2, j2);
+			} else {
+				// tileset has a different size than the biggest; scale it
+				// (TODO: better solution?)
+				ctx3.drawImage(img, i2, j2, tsw, tsh);
+			}
 
-			var idata = ctx3.getImageData(i * 256, j * 256, 256, 256);
+			var idata = ctx3.getImageData(i2, j2, tilew << 4, tileh << 4);
 			var pixels = idata.data;
 
 			for (var u = 0, len = pixels.length; u < len; u += 4) {
-				pixels[u] = pixels[u] * (colors[c * 3 + 0] / 255);
-				pixels[u + 1] = pixels[u + 1] * (colors[c * 3 + 1] / 255);
-				pixels[u + 2] = pixels[u + 2] * (colors[c * 3 + 2] / 255);
+				if (pixels[u] === 255 && pixels[u + 1] === 0 && pixels[u + 2] === 255) {
+					// poor man's transparency
+					pixels[u] = 0;
+					pixels[u + 1] = 0;
+					pixels[u + 2] = 0;
+					pixels[u + 3] = 0;
+				}
+				pixels[u] = pixels[u] * (colors[c + 0] / 255);
+				pixels[u + 1] = pixels[u + 1] * (colors[c + 1] / 255);
+				pixels[u + 2] = pixels[u + 2] * (colors[c + 2] / 255);
 			}
-			ctx3.putImageData(idata, i * 256, j * 256);
+			ctx3.putImageData(idata, i2, j2);
 
 			ctx3.fillStyle = 'rgb(' +
-					colors[c * 3 + 0] + ',' +
-					colors[c * 3 + 1] + ',' +
-					colors[c * 3 + 2] + ')';
+					colors[c + 0] + ',' +
+					colors[c + 1] + ',' +
+					colors[c + 2] + ')';
 
-			ctx3.fillRect(i * 256 + 16 * 15, j * 256 + 16 * 15, 16, 16);
+			ctx3.fillRect(i2 + tilew * 15, j2 + tileh * 15, tilew, tileh);
 		}
 	}
 }
@@ -428,16 +445,16 @@ function init() {
 	document.body.style.backgroundColor =
 		'rgb(' + colors[0] + ',' + colors[1] + ',' + colors[2] + ')';
 
+	tilew = Math.max(ts.width, tt.width, tovr.width) / 16;
+	tileh = Math.max(ts.height, tt.height, tovr.height) / 16;
+
 	cd = document.createElement('canvas');
-	cd.width = cd.height = 1024;
 	colorize(ts, cd);
 
 	ct = document.createElement('canvas');
-	ct.width = ct.height = 1024;
 	colorize(tt, ct);
 	
 	covr = document.createElement('canvas');
-	covr.width = covr.height = 1024;
 	colorize(tovr, covr);
 
 	lastFrame = performance.now();
@@ -497,19 +514,19 @@ document.onkeydown = function(ev) {
 
 	if (ev.keyCode === 18 ||
 	    ev.keyCode === 17 ||
-	    ev.keyCode === 16) {
+        ev.keyCode === 16) {
 		return;
 	}
 
-    var mod = ev.shiftKey | (ev.ctrlKey << 1) | (ev.altKey << 2);
-    var charCode = 0;
-    if (ev.key.length == 1){
-      charCode = ev.key.charCodeAt(0)
-    }
-    var data = new Uint8Array([cmd.sendKey, ev.keyCode, charCode, mod]);
-    logKeyCode(ev);
-    websocket.send(data);
-    ev.preventDefault();
+	var mod = ev.shiftKey | (ev.ctrlKey << 1) | (ev.altKey << 2);
+	var charCode = 0;
+	if (ev.key.length == 1){
+	    charCode = ev.key.charCodeAt(0)
+	}
+	var data = new Uint8Array([cmd.sendKey, ev.keyCode, charCode, mod]);
+	logKeyCode(ev);
+	websocket.send(data);
+	ev.preventDefault();
 };
 
 function udpateScreenSize() {
