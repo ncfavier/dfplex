@@ -118,6 +118,7 @@ function setDebug(debugInfo) {
 	}
 }
 
+var statusOnClick = null;
 function setStatus(text, color, onclick) {
 	var m = document.getElementById('message');
 	if (m.innerHTML != text)
@@ -125,8 +126,15 @@ function setStatus(text, color, onclick) {
 		m.innerHTML = text;
 	}
 	var st = m.parentNode;
+	if (statusOnClick) {
+		st.removeEventListener('click', statusOnClick);
+	}
+	statusOnClick = onclick;
 	if (onclick) {
 		st.addEventListener('click', onclick);
+		st.style.cursor = 'pointer';
+	} else {
+		st.style.cursor = '';
 	}
 	st.style.backgroundColor = color;
 }
