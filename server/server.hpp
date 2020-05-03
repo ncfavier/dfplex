@@ -6,35 +6,15 @@
 
 #pragma once
 
-// this is a hacky fix for a windows build error.
-#include "modules/EventManager.h"
 
 #include <ctime>
 #include <map>
 #include <string>
-#include <websocketpp/server.hpp>
 
 #include "Client.hpp"
 
-namespace ws = websocketpp;
-// FIXME: use unique_ptr or the boost equivalent
-typedef ws::connection_hdl conn_hdl;
-
-static std::owner_less<conn_hdl> conn_lt;
-inline bool operator==(const conn_hdl& p, const conn_hdl& q)
-{
-    return (!conn_lt(p, q) && !conn_lt(q, p));
-}
-inline bool operator!=(const conn_hdl& p, const conn_hdl& q)
-{
-    return conn_lt(p, q) || conn_lt(q, p);
-}
-
-extern std::map<conn_hdl, Client*, std::owner_less<conn_hdl>> conn_map;
 extern std::set<Client*> clients;
 
 // used to launch server by dfplex.
 void wsthreadmain(void*);
-
-Client* get_client(conn_hdl hdl); // retrieves client from connection
 

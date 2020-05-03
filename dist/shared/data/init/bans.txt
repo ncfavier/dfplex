@@ -4,4 +4,4 @@
 
 # For example, uncomment these lines:
 #45.2.13.253
-::ffff:127.0.0.1
+#::ffff:127.0.0.1

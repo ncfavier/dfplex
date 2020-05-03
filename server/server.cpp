@@ -15,6 +15,20 @@
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
 
+namespace ws = websocketpp;
+// FIXME: use unique_ptr or the boost equivalent
+typedef ws::connection_hdl conn_hdl;
+
+static std::owner_less<conn_hdl> conn_lt;
+inline bool operator==(const conn_hdl& p, const conn_hdl& q)
+{
+    return (!conn_lt(p, q) && !conn_lt(q, p));
+}
+inline bool operator!=(const conn_hdl& p, const conn_hdl& q)
+{
+    return conn_lt(p, q) || conn_lt(q, p);
+}
+
 namespace lib = websocketpp::lib;
 using websocketpp::lib::placeholders::_1;
 using websocketpp::lib::placeholders::_2;
@@ -252,11 +266,13 @@ void on_open(server* s, conn_hdl hdl)
     dfplex_mutex.lock();
     if (s->get_con_from_hdl(hdl)->get_subprotocol() == WF_INVALID) {
         s->close(hdl, 4000, "Invalid version, expected '" WF_VERSION "'.");
+        dfplex_mutex.unlock();
         return;
     }
 
     if (clients.size() >= MAX_CLIENTS && MAX_CLIENTS != 0) {
         s->close(hdl, 4001, "Server is full.");
+        dfplex_mutex.unlock();
         return;
     }
 
@@ -265,7 +281,8 @@ void on_open(server* s, conn_hdl hdl)
     
     if (std::find(g_ban_list.begin(), g_ban_list.end(), addr) != g_ban_list.end())
     {
-        s->close(hdl, 4002, "Banned.");
+        s->close(hdl, 4003, "Banned.");
+        dfplex_mutex.unlock();
         return;
     }
     
@@ -275,6 +292,7 @@ void on_open(server* s, conn_hdl hdl)
 
     if (nick == "__NOBODY") {
         s->close(hdl, 4002, "Invalid nickname.");
+        dfplex_mutex.unlock();
         return;
     }
 
