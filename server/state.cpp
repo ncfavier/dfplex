@@ -710,6 +710,11 @@ RestoreResult restore_state(Client* client)
     return RestoreResult::SUCCESS;
 }
 
+bool isBuildMenu(){
+    using df::global::ui_build_selector;
+    return ui_build_selector;
+}
+
 bool isBuildPositionMenu(){
     using df::global::ui_build_selector;
     if (ui_build_selector)
@@ -782,7 +787,7 @@ void capture_post_state(Client* client)
             // save and restore build menu cursor
             ui.m_buildcoord_set = true;
             ui.m_buildcoord =  ui.m_cursorcoord;
-        } else if (menu.rfind("dwarfmode/Build", 0) == std::string::npos){
+        } else if (!isBuildMenu()){
             ui.m_buildcoord_set = false;
         }
 
