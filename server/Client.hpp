@@ -304,6 +304,7 @@ struct Client;
 struct ClientUpdateInfo
 {
     bool is_multiplex;
+    bool on_destroy;
 };
 typedef std::function<void(Client*, const ClientUpdateInfo&)> client_update_cb;
 
@@ -317,6 +318,8 @@ struct Client {
     //
     // Should populate Client::keyqueue. For example:
     //   client->keyqueue.emplace(df::enums::interface_key::D_DESIGNATE);
+    //
+    // also called if the client is deleted (on_destroy will be true.)
     client_update_cb update_cb;
     
     std::string info_message; // this string is displayed to the user.

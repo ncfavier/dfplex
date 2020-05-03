@@ -100,12 +100,19 @@ size_t get_client_count()
 
 void remove_client(Client* cl)
 {
+    ClientUpdateInfo info;
+    info.is_multiplex = false;
+    info.on_destroy = true;
     if (cl)
     {
         for (auto iter = clients.begin(); iter != clients.end(); ++iter)
         {
             if (*iter == cl)
             {
+                if ((*iter)->update_cb)
+                {
+                    (*iter)->update_cb(*iter, info);
+                }
                 delete *iter;
                 clients.erase(iter);
                 break;

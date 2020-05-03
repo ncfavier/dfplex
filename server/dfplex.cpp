@@ -448,7 +448,7 @@ static void update_uniplexing()
     
     for (Client* client = get_client(i); client; i++, client = get_client(i))
     {
-        if (client->update_cb) client->update_cb(client, { false });
+        if (client->update_cb) client->update_cb(client, { false, false });
     }
     
     i = 0;
@@ -534,7 +534,7 @@ static bool update_multiplexing(Client* client)
                 vs->logic();
             }
             
-            if (client->update_cb) client->update_cb(client, { true });
+            if (client->update_cb) client->update_cb(client, { true, false });
             
             apply_keys(client, false);
             
@@ -888,6 +888,14 @@ DFhackCExport command_result plugin_init(color_ostream &out, vector <PluginComma
         out.color(COLOR_RESET);
         return CR_OK;
     }
+    
+    static std::function<Client*()> fn_add_client = []() -> Client* { return add_client(); };
+    static std::function<Client*(client_update_cb&&)> fn_add_client_cb = [](client_update_cb&& cb) -> Client* { return add_client(std::move(cb)); };
+    static std::function<void(Client*)> fn_remove_client = remove_client;
+    
+    Core::getInstance().RegisterData(&fn_add_client, "dfplex_add_client");
+    Core::getInstance().RegisterData(&fn_add_client_cb, "dfplex_add_client_cb");
+    Core::getInstance().RegisterData(&fn_remove_client, "dfplex_remove_client");
     
     return CR_OK;
 }

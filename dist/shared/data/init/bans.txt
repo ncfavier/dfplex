@@ -1,0 +1,4 @@
+# List ip addresses here
+# For example, comment out the next line
+# You can view player IP addresses in 
+# 45.2.13.253
