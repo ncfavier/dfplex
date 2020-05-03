@@ -620,7 +620,7 @@ RestoreResult restore_state(Client* client)
             
             return RestoreResult::FAIL;
         }
-        
+
         if (rkey.m_blockcatch)
         {
             if (rkey.m_observed_menu != menu_id || rkey.m_observed_menu_depth != menu_depth)
@@ -710,6 +710,29 @@ RestoreResult restore_state(Client* client)
     return RestoreResult::SUCCESS;
 }
 
+bool isBuildMenu(){
+    using df::global::ui;
+    return df::global::ui->main.mode == df::enums::ui_sidebar_mode::Build;
+}
+
+bool isBuildPositionMenu(){
+    using df::global::ui_build_selector;
+    if (ui_build_selector)
+    {
+        // Not selecting, or no choices?
+        if (ui_build_selector->building_type < 0)
+            return false;
+        else if (ui_build_selector->stage != 2)
+        {
+            if (ui_build_selector->stage != 1)
+                return false;
+            else
+                return true;
+        }
+    }
+    return false;
+}
+
 // captures some of the state of the UI.
 // does not capture the restore keypresses -- those are processed
 // online in command.cpp
@@ -753,6 +776,21 @@ void capture_post_state(Client* client)
             ui.m_cursorcoord_set = false;
             ui.m_designationcoord_set = false;
         }
+
+        // build position menu
+        menu_id menu =  get_current_menu_id();
+
+        if (ui.m_cursorcoord_set && id == &df::viewscreen_dwarfmodest::_identity
+            && isBuildMenu()
+            && isBuildPositionMenu())
+        {
+            // save and restore build menu cursor
+            ui.m_buildcoord_set = true;
+            ui.m_buildcoord =  ui.m_cursorcoord;
+        } else if (id != &df::viewscreen_dwarfmodest::_identity || !isBuildMenu()){
+            ui.m_buildcoord_set = false;
+        }
+
         ui.m_squadcoord_start_set = true;
         ui.m_squadcoord_start.x = df::global::ui->squads.rect_start.x;
         ui.m_squadcoord_start.y = df::global::ui->squads.rect_start.y;
@@ -763,7 +801,7 @@ void capture_post_state(Client* client)
     ui.m_designate_marker = df::global::ui_sidebar_menus->designation.marker_only;
     ui.m_designate_priority_set = df::global::ui_sidebar_menus->designation.priority_set;
     ui.m_designate_priority = df::global::ui_sidebar_menus->designation.priority;
-    
+
     // map view dimensions
     if (is_dwarf_mode())
     {
@@ -775,7 +813,7 @@ void capture_post_state(Client* client)
     {
         ui.m_map_dimx = ui.m_map_dimy = -1;
     }
-    
+
     // burrows
     ui.m_brush_erasing = df::global::ui->burrows.brush_erasing;
     

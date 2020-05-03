@@ -87,7 +87,7 @@ void write_to_screen(int x, int y, std::string s, uint8_t fg=7, uint8_t bg=0, bo
 {
     for (size_t i = 0; i < s.length(); ++i)
     {
-        if (x + i < gps->dimx && y < gps->dimy && x + i >= 0 && y >= 0)
+        if (static_cast<int>(x + i) < gps->dimx && y < gps->dimy && static_cast<int>(x + i) >= 0 && y >= 0)
         {
             ClientTile& tile = screentile(x + i, y);
             tile.pen.ch = s.at(i);
