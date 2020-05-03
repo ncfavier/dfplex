@@ -60,3 +60,10 @@ not be required.)
 
 Display the cursor X as text?
 [CURSOR_IS_TEXT:1]
+
+Cap on the number of keys that can be on the stack.
+If this is exceeded, the stack will reset (user will be
+booted to the dwarf menu.)
+Set this to 0 to disable -- caveat emptor, clients could
+abuse this to slow down the server.
+[KEYSTACK_MAX:10000]

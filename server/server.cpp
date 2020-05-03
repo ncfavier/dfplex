@@ -10,6 +10,7 @@
 #include "serverlog.hpp"
 #include "DFHackVersion.h"
 #include "Core.h"
+#include "tinythread.h"
 
 #include <cassert>
 #include <websocketpp/config/asio_no_tls.hpp>
@@ -263,16 +264,14 @@ bool validate_open(server* s, conn_hdl hdl)
 
 void on_open(server* s, conn_hdl hdl)
 {
-    dfplex_mutex.lock();
+    tthread::lock_guard<decltype(dfplex_mutex)> guard(dfplex_mutex);
     if (s->get_con_from_hdl(hdl)->get_subprotocol() == WF_INVALID) {
         s->close(hdl, 4000, "Invalid version, expected '" WF_VERSION "'.");
-        dfplex_mutex.unlock();
         return;
     }
 
     if (clients.size() >= MAX_CLIENTS && MAX_CLIENTS != 0) {
         s->close(hdl, 4001, "Server is full.");
-        dfplex_mutex.unlock();
         return;
     }
 
@@ -282,7 +281,6 @@ void on_open(server* s, conn_hdl hdl)
     if (std::find(g_ban_list.begin(), g_ban_list.end(), addr) != g_ban_list.end())
     {
         s->close(hdl, 4003, "Banned.");
-        dfplex_mutex.unlock();
         return;
     }
     
@@ -292,7 +290,6 @@ void on_open(server* s, conn_hdl hdl)
 
     if (nick == "__NOBODY") {
         s->close(hdl, 4002, "Invalid nickname.");
-        dfplex_mutex.unlock();
         return;
     }
 
@@ -313,17 +310,15 @@ void on_open(server* s, conn_hdl hdl)
     
     clients.emplace(cl);
     conn_map[hdl] = cl;
-    dfplex_mutex.unlock();
 }
 
 void on_close(server* s, conn_hdl c)
 {
-    dfplex_mutex.lock();
+    tthread::lock_guard<decltype(dfplex_mutex)> guard(dfplex_mutex);
     
     remove_client(get_client(c));
     
     conn_map.erase(c);
-    dfplex_mutex.unlock();
 }
 
 void tock(server* s, conn_hdl hdl)
@@ -349,7 +344,6 @@ void tock(server* s, conn_hdl hdl)
     b += sizeof(load);
 
     // [7-8] game dimensions
-    assert(cl->dimx < 256 && cl->dimy < 256);
     *(b++) = cl->dimx;
     *(b++) = cl->dimy;
 
@@ -386,6 +380,10 @@ void tock(server* s, conn_hdl hdl)
         for (int x = 0; x < cl->dimx; x++) {
             const int tile = x * cl->dimy + y;
             if (tile >= 256 * 256) break;
+            if (b >= buf + sizeof(buf) - 0x400)
+            {
+                return;
+            }
             ClientTile& ct = cl->sc[tile]; // client's tile
             if (ct.modified)
             {
@@ -407,13 +405,14 @@ void tock(server* s, conn_hdl hdl)
 
 void on_message(server* s, conn_hdl hdl, message_ptr msg)
 {
-    dfplex_mutex.lock();
+    tthread::lock_guard<decltype(dfplex_mutex)> guard(dfplex_mutex);
+    
     auto str = msg->get_payload();
     const unsigned char *mdata = (const unsigned char*) str.c_str();
     int msz = str.size();
     
     Client* cl = get_client(hdl);
-    if (!cl) goto skip;
+    if (!cl) return;
 
     if (mdata[0] == 117 && msz == 3) { // ResizeEvent
         cl->desired_dimx = mdata[1];
@@ -437,8 +436,6 @@ void on_message(server* s, conn_hdl hdl, message_ptr msg)
             match.type = EventType::type_unicode;
             match.unicode = mdata[2];
             cl->keyqueue.push(match);
-        } else {
-            goto skip;
         }
     } else if (mdata[0] == 115) { // refreshScreen
         // in particular, this sets the modified flag to 0.
@@ -446,10 +443,6 @@ void on_message(server* s, conn_hdl hdl, message_ptr msg)
     } else {
         tock(s, hdl);
     }
-
-skip:
-    dfplex_mutex.unlock();
-    return;
 }
 
 void on_init(conn_hdl hdl, boost::asio::ip::tcp::socket & s)

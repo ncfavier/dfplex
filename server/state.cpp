@@ -559,6 +559,14 @@ RestoreResult restore_state(Client* client)
     UPDATE_VS(vs, id);
     (void)id;
     
+    // check for keystack overflow
+    if (ui.m_restore_keys.size() > KEYSTACK_MAX && KEYSTACK_MAX > 0)
+    {
+        restore_state_error = "Key stack overflow (" + std::to_string(ui.m_restore_keys.size()) + ")";
+        ui.m_restore_keys.clear();
+        return RestoreResult::FAIL;
+    }
+    
     // apply state keys
     while (ui.m_restore_progress < ui.m_restore_keys.size())
     {
@@ -688,7 +696,6 @@ RestoreResult restore_state(Client* client)
         {
             UPDATE_VS(vs, id);
             //vs->feed_key(df::enums::interface_key::STANDARDSCROLL_DOWN);
-            //*_out << "advanced to " << get_current_menu_id() << std::endl;
         }
         
         ui.m_restore_progress++;

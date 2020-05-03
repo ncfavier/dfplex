@@ -89,7 +89,7 @@ bool plexing = false;
 static bool uniplexing_requested = false;
 bool global_pause = true; // game state should be paused.
 static size_t current_user_state_index = 0;
-color_ostream* _out = nullptr;
+color_ostream* _out = nullptr; // please switch to using Core::print() instead
 static bool server_debug_out = false;
 static bool single_step_requested = false;
 
@@ -677,7 +677,7 @@ void dfplex_update()
 {
     if (!_out) return;
     
-    dfplex_mutex.lock();
+    tthread::lock_guard<decltype(dfplex_mutex)> guard(dfplex_mutex);
     //CoreSuspender suspend;
     
     // reload ban list every 45 seconds.
@@ -796,13 +796,12 @@ void dfplex_update()
     }
     
     frames_elapsed++;
-    dfplex_mutex.unlock();
 }
 
 // when an announcement/event occurs
 void on_report(color_ostream &out, void* v)
 {
-    dfplex_mutex.lock();
+    tthread::lock_guard<decltype(dfplex_mutex)> guard(dfplex_mutex);
     df::report* report = df::report::find((intptr_t)v);
     df::announcement_flags flags = df::global::d_init->announcements.flags[report->type];
     
@@ -838,7 +837,6 @@ void on_report(color_ostream &out, void* v)
             }
         }
     }
-    dfplex_mutex.unlock();
 }
 
 static void enable()
@@ -924,9 +922,10 @@ DFhackCExport command_result plugin_init(color_ostream &out, vector <PluginComma
 
 DFhackCExport command_result plugin_onupdate(color_ostream &out)
 {
-    dfplex_mutex.lock();
-    _out = &out;
-    dfplex_mutex.unlock();
+    {
+        tthread::lock_guard<decltype(dfplex_mutex)> guard(dfplex_mutex);
+        _out = &out;
+    }
     
     if (!enabled) return CR_OK;
     
@@ -936,29 +935,25 @@ DFhackCExport command_result plugin_onupdate(color_ostream &out)
 
 DFhackCExport command_result plugin_enable(color_ostream &out, bool to_enable)
 {
-    dfplex_mutex.lock();
+    tthread::lock_guard<decltype(dfplex_mutex)> guard(dfplex_mutex);
     _out = &out;
     
     if (to_enable)
         enable();
     else
         disable();
-    dfplex_mutex.unlock();
         
     return CR_OK;
 }
 
 DFhackCExport command_result plugin_shutdown(color_ostream &out)
 {
-    dfplex_mutex.lock();
+    tthread::lock_guard<decltype(dfplex_mutex)> guard(dfplex_mutex);
     _out = &out;
-    dfplex_mutex.unlock();
     
     if (!enabled) return CR_OK;
     
-    dfplex_mutex.lock();
     disable();
-    dfplex_mutex.unlock();
 
     return CR_OK;
 }

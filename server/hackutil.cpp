@@ -706,7 +706,6 @@ menu_id get_current_menu_id()
             if (renaming_squad_id() >= 0)
             {
                 focus += "/rename/squad-" + std::to_string(renaming_squad_id());
-                *_out << focus << endl;
             }
         }
     }

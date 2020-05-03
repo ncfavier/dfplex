@@ -18,7 +18,6 @@ extern tthread::fast_mutex dfplex_mutex;
 extern bool global_pause;
 extern bool plexing;
 extern int32_t frames_elapsed;
-extern DFHack::color_ostream* _out;
 
 extern ChatLog g_chatlog;
 

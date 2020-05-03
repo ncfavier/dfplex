@@ -77,9 +77,20 @@ static const size_t K_BEVEL = 1;
 // retrieves cached screenbuf's tile.
 ClientTile& screentile(int x, int y)
 {
-    assert(x >= 0 && y >= 0 && x < gps->dimx && y < gps->dimy);
+    // returned for safety in some circumstances.
+    static ClientTile dummy;
+    
+    if (x < 0 || y < 0 || x >= gps->dimx || y >= gps->dimy)
+    {
+        return dummy;
+    }
+    
     size_t index = x * gps->dimy + y;
-    assert(index < sizeof(screenbuf_t) / sizeof(ClientTile));
+    if (index >= sizeof(screenbuf_t) / sizeof(ClientTile))
+    {
+        return dummy;
+    }
+    
     return screenbuf[index];
 }
 
@@ -732,7 +743,7 @@ void transfer_screenbuf_client(Client* client)
         
         modify_screenbuf(client);
         
-        size_t count = std::max(0, gps->dimx * gps->dimy);
+        size_t count = std::min(std::max(0, gps->dimx * gps->dimy), 256 * 256);
         if (gps->dimx != client->dimx || gps->dimy != client->dimy)
         {
             // refresh client's screen

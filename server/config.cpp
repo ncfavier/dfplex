@@ -27,6 +27,7 @@ uint16_t MESSAGE_FLASH_TIME = 10;
 size_t MAX_MESSAGE_COUNT = 0x10000;
 bool CHAT_ENABLED = true;
 bool MULTISIZE = true;
+size_t KEYSTACK_MAX = 10000;
 std::string SECRET = ""; // auth is disabled by default
 std::vector<std::string> g_ban_list;
 
@@ -178,6 +179,9 @@ bool load_text_file()
 		}
         if (key == "CHAT_NAME_REQUIRED") {
             CHAT_NAME_REQUIRED = !!std::stol(val);
+		}
+        if (key == "KEYSTACK_MAX") {
+            KEYSTACK_MAX = std::stol(val);
 		}
 	}
     
