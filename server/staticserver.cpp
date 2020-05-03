@@ -11,7 +11,10 @@
 #include "Console.h"
 #include "Core.h"
 
-#define SO_REUSEPORT
+#ifndef _WIN32
+    // this seems to cause build errors on windows.
+    #define SO_REUSEPORT
+#endif
 
 #include <httplib.h>
 
