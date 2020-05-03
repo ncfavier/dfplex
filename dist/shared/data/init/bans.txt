@@ -2,5 +2,6 @@
 # The ban list is reloaded by dfplex every 45 seconds.
 # You can view IP addresses in dfplex_server.log
 
-# For example, comment out this line:
-# 45.2.13.253
+# For example, uncomment these lines:
+#45.2.13.253
+::ffff:127.0.0.1
