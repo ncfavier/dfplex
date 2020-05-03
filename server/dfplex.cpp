@@ -893,6 +893,8 @@ DFhackCExport command_result plugin_init(color_ostream &out, vector <PluginComma
     static std::function<Client*(client_update_cb&&)> fn_add_client_cb = [](client_update_cb&& cb) -> Client* { return add_client(std::move(cb)); };
     static std::function<void(Client*)> fn_remove_client = remove_client;
     
+    Core::getInstance().RegisterData(&dfplex_mutex, "dfplex_mutex");
+    Core::getInstance().RegisterData(&g_chatlog, "dfplex_chatlog");
     Core::getInstance().RegisterData(&fn_add_client, "dfplex_add_client");
     Core::getInstance().RegisterData(&fn_add_client_cb, "dfplex_add_client_cb");
     Core::getInstance().RegisterData(&fn_remove_client, "dfplex_remove_client");
