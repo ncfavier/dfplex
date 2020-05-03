@@ -56,7 +56,7 @@ struct RestoreKey
     bool m_pre_restore_cursor = false;
     Coord m_cursor; // only used for pre, never post.
     bool m_post_restore_cursor = false;
-    
+
     // don't do the default sidebar-refresh after this command is applied?
     bool m_suppress_sidebar_refresh = false;
     
@@ -98,7 +98,7 @@ struct UIState
     
     bool m_viewcoord_set = false;
     Coord m_viewcoord;
-    
+
     // for switching to with the [ ] keys.
     bool m_stored_viewcoord_skip = false;
     bool m_stored_camera_return = false; // return after an event is set; remove this eventually...?
@@ -111,6 +111,11 @@ struct UIState
     
     bool m_cursorcoord_set = false;
     Coord m_cursorcoord;
+
+    // Build menu cursor position
+    // if false, do not restore the build menu cursor position
+    bool m_buildcoord_set = false;
+    Coord m_buildcoord; // stores the last position of the cursor from the build menu, if any
     
     bool m_designationcoord_share = false;
     bool m_designationcoord_set = false;

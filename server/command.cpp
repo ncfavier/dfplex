@@ -892,7 +892,19 @@ void apply_command(std::set<df::interface_key>& keys, Client* cl, bool raw)
             rkey.m_post_menu = menu_id;
             rkey.m_post_menu_depth = menu_depth;
         }
-        
+
+        if (menu_id.rfind("dwarfmode/Build/Position", 0) == 0 &&
+            menu_id_prev.rfind("dwarfmode/Build/Position", 0) == std::string::npos)
+        {
+            // restore build menu cursor
+            if (ui.m_buildcoord_set){
+                Gui::setCursorCoords(ui.m_buildcoord.x, ui.m_buildcoord.y, ui.m_buildcoord.z);
+                ui.m_cursorcoord = ui.m_buildcoord;
+                Gui::refreshSidebar();
+            }
+        }
+
+
         // one reason we would add the key to the record is if
         // we have gone down a menu.
         if (menu_id != menu_id_prev || menu_depth != menu_depth_prev)
