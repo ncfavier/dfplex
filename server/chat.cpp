@@ -8,7 +8,7 @@
 #include "config.hpp"
 
 // we need this for get_client()
-#include "server.hpp"
+#include "dfplex.hpp"
 
 bool ChatMessage::is_expired(Client* client) const
 {

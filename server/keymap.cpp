@@ -229,7 +229,7 @@ bool KeyMap::loadKeyBindings(DFHack::color_ostream& out, const string& file)
             }
             
             KeyEvent ev;
-            ev.type = type_key;
+            ev.type = EventType::type_key;
             ev.mod = std::stoi(symbol.args.at(0));
             
             auto iter = sdlKeyNames.find(symbol.args.at(1));
@@ -240,7 +240,7 @@ bool KeyMap::loadKeyBindings(DFHack::color_ostream& out, const string& file)
             }
             ev.key = iter->second;
             
-            keymap.insert({ev, key});
+            keymap.emplace(std::move(ev), key);
         }
         else if (symbol.op == "BUTTON")
         {
@@ -256,13 +256,13 @@ bool KeyMap::loadKeyBindings(DFHack::color_ostream& out, const string& file)
             }
             
             KeyEvent ev;
-            ev.type = type_unicode;
+            ev.type = EventType::type_unicode;
             
             // TODO unicode
             std::string charname = symbol.args.at(0);
             ev.unicode = utf8_decode(charname);
             
-            keymap.insert({ev, key});
+            keymap.emplace(std::move(ev), key);
         }
         else
         {
@@ -304,6 +304,12 @@ std::string KeyMap::getCommandName(df::interface_key key)
 
 std::set<df::interface_key> KeyMap::toInterfaceKey(const KeyEvent & match){
     std::set<df::interface_key> bindings;
+    
+    if (match.interface_keys.get())
+    {
+        bindings.insert(match.interface_keys.get()->begin(), match.interface_keys.get()->end());
+    }
+    
     std::pair<std::multimap<KeyEvent,df::interface_key>::iterator,std::multimap<KeyEvent,df::interface_key>::iterator> its;
 
     for (its = keymap.equal_range(match); its.first != its.second; ++its.first)
@@ -312,16 +318,32 @@ std::set<df::interface_key> KeyMap::toInterfaceKey(const KeyEvent & match){
     return bindings;
 }
 
+KeyEvent& KeyEvent::operator=(const KeyEvent& other)
+{
+    type = other.type;
+    mod = other.mod;
+    unicode = other.unicode;
+    key = other.key;
+    button = other.button;
+    if (other.interface_keys)
+    {
+        interface_keys.reset(new std::set<df::interface_key>(
+            *other.interface_keys.get()
+        ));
+    }
+    return *this;
+}
+
 std::ostream& operator<<(std::ostream& a, const KeyEvent& match)
 {
     a << "KeyEvent {";
     switch (match.type)
     {
-    case type_unicode:
+    case EventType::type_unicode:
         a << "unicode ";
         a << (int)match.unicode;
         break;
-    case type_key:
+    case EventType::type_key:
         a << "key ";
         a << (int)match.key;
         if (match.unicode){
@@ -329,9 +351,19 @@ std::ostream& operator<<(std::ostream& a, const KeyEvent& match)
         }
         a << ", mod " << (int)match.mod;
         break;
-    case type_button:
+    case EventType::type_button:
         a << "button ";
         a << (int)match.button;
+        break;
+    case EventType::type_interface:
+        a << "interface_keys:";
+        if (match.interface_keys)
+        {
+            for (const df::interface_key& key : *match.interface_keys.get())
+            {
+                a << " " << enum_item_key(key);
+            }
+        }
         break;
     }
     a << "}";

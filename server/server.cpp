@@ -6,6 +6,7 @@
 
 #include "server.hpp"
 #include "config.hpp"
+#include "dfplex.hpp"
 #include "DFHackVersion.h"
 #include "Core.h"
 
@@ -24,8 +25,8 @@ typedef server::message_ptr message_ptr;
 
 static conn_hdl null_conn = std::weak_ptr<void>();
 
-
-conn_map clients;
+std::map<conn_hdl, Client*, std::owner_less<conn_hdl>> conn_map;
+std::set<Client*> clients;
 
 #include "config.hpp"
 #include "dfplex.hpp"
@@ -91,9 +92,43 @@ private:
     server* srv;
 };
 
+// TODO: migrate to dfplex.cpp?
 size_t get_client_count()
 {
     return clients.size();
+}
+
+void remove_client(Client* cl)
+{
+    if (cl)
+    {
+        for (auto iter = clients.begin(); iter != clients.end(); ++iter)
+        {
+            if (*iter == cl)
+            {
+                delete *iter;
+                clients.erase(iter);
+                break;
+            }
+        }
+    }
+}
+
+Client* add_client()
+{
+    Client* cl = *clients.emplace(new Client()).first;
+    
+    // clear screen
+    memset(cl->sc, 0, sizeof(cl->sc));
+
+    return cl;
+}
+
+Client* add_client(client_update_cb&& cb)
+{
+    Client* cl = add_client();
+    cl->update_cb = std::move(cb);
+    return cl;
 }
 
 Client* get_client(int32_t n)
@@ -101,14 +136,14 @@ Client* get_client(int32_t n)
     if (n < 0) return nullptr;
     
     auto it = clients.begin();
-    for (size_t i = 0; i < n; ++i)
+    for (size_t i = 0; i < static_cast<size_t>(n); ++i)
     {
         if (it == clients.end()) return nullptr;
         it++;
     }
     if (it == clients.end()) return nullptr;
-    assert(it->second);
-    return it->second;
+    assert(*it);
+    return *it;
 }
 
 Client* get_client(const ClientIdentity* id)
@@ -118,7 +153,7 @@ Client* get_client(const ClientIdentity* id)
     for (size_t i = 0; true; ++i)
     {
         if (it == clients.end()) return nullptr;
-        if (it->second->id.get() == id) return it->second;
+        if ((*it)->id.get() == id) return *it;
         it++;
     }
     
@@ -133,7 +168,7 @@ int get_client_index(const ClientIdentity* id)
     for (size_t i = 0; true; ++i)
     {
         if (it == clients.end()) return -1;
-        if (it->second->id.get() == id) return i;
+        if ((*it)->id.get() == id) return i;
         it++;
     }
     
@@ -143,11 +178,9 @@ int get_client_index(const ClientIdentity* id)
 
 Client* get_client(conn_hdl hdl)
 {
-    auto it = clients.find(hdl);
-    if (it == clients.end()) {
-        return nullptr;
-    }
-    return it->second;
+    auto iter = conn_map.find(hdl);
+    if (iter == conn_map.end()) return nullptr;
+    return iter->second;
 }
 
 std::string str(std::string s)
@@ -227,25 +260,23 @@ void on_open(server* s, conn_hdl hdl)
         return;
     }
 
-    Client* cl = new Client;
+    Client* cl = add_client();
 	cl->id->is_admin = (user_secret == SECRET);
-
     cl->id->addr = raw_conn->get_remote_endpoint();
     cl->id->nick = nick;
-    memset(cl->sc, 0, sizeof(cl->sc));
     
-    clients[hdl] = cl;
+    clients.emplace(cl);
+    conn_map[hdl] = cl;
     dfplex_mutex.unlock();
 }
 
 void on_close(server* s, conn_hdl c)
 {
     dfplex_mutex.lock();
-    Client* cl = get_client(c);
-    if (cl) {
-        delete cl;
-    }
-    clients.erase(c);
+    
+    remove_client(get_client(c));
+    
+    conn_map.erase(c);
     dfplex_mutex.unlock();
 }
 
@@ -345,7 +376,7 @@ void on_message(server* s, conn_hdl hdl, message_ptr msg)
 
         if (mdata[1]){
             KeyEvent match;
-            match.type = type_key;
+            match.type = EventType::type_key;
             match.mod = mdata[3];
             match.unicode = mdata[2];// retain unicode information
             match.key = mapInputCodeToSDL(mdata[1]);
@@ -357,7 +388,7 @@ void on_message(server* s, conn_hdl hdl, message_ptr msg)
         {
             KeyEvent match;
             match.mod = 0; // unicode must not have modifiers.
-            match.type = type_unicode;
+            match.type = EventType::type_unicode;
             match.unicode = mdata[2];
             cl->keyqueue.push(match);
         } else {

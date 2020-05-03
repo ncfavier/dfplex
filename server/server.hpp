@@ -27,15 +27,11 @@ inline bool operator!=(const conn_hdl& p, const conn_hdl& q)
     return conn_lt(p, q) || conn_lt(q, p);
 }
 
-typedef std::map<conn_hdl, Client*, std::owner_less<conn_hdl>> conn_map;
-extern conn_map clients;
+extern std::map<conn_hdl, Client*, std::owner_less<conn_hdl>> conn_map;
+extern std::set<Client*> clients;
 
-// void* argument is actually DFHack::color_ostream*
-// signature is constrained by tthread.
+// used to launch server by dfplex.
 void wsthreadmain(void*);
 
-size_t get_client_count();
-Client* get_client(int32_t n); // retrieves nth client.
-Client* get_client(const ClientIdentity*); // retrieves client by identity
-int get_client_index(const ClientIdentity*); // retrieves client index by identity (or -1 if not found)
 Client* get_client(conn_hdl hdl); // retrieves client from connection
+

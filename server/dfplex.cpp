@@ -123,15 +123,19 @@ bool is_paused()
 static std::set<df::interface_key> match_to_keys(const KeyEvent& match)
 {
     std::set<df::interface_key> keys;
-    if (match.type == type_key && match.unicode != 0){
+    if (match.interface_keys.get())
+    {
+        keys.insert(match.interface_keys.get()->begin(), match.interface_keys.get()->end());
+    }
+    if (match.type == EventType::type_key && match.unicode != 0){
         // this event match contains both sdl and unicode data, match both
         KeyEvent sdlMatch = match;
         sdlMatch.unicode = 0;
-        keys  = keybindings.toInterfaceKey(sdlMatch);
+        keys = keybindings.toInterfaceKey(sdlMatch);
 
         KeyEvent unicodeMatch;
         unicodeMatch.unicode = match.unicode;
-        unicodeMatch.type = type_unicode;
+        unicodeMatch.type = EventType::type_unicode;
         unicodeMatch.mod = 0;
         std::set<df::interface_key> unicodeKeys = keybindings.toInterfaceKey(unicodeMatch);
         keys.insert(unicodeKeys.begin(), unicodeKeys.end());
@@ -246,7 +250,7 @@ void apply_key(const KeyEvent& match, Client* cl, bool raw)
             
             return;
         }
-        else if (CHATKEY != 0 && !raw && (match.type == type_unicode || match.type == type_key) && match.unicode == CHATKEY)
+        else if (CHATKEY != 0 && !raw && (match.type == EventType::type_unicode || match.type == EventType::type_key) && match.unicode == CHATKEY)
         {
             if (!CHAT_NAME_REQUIRED || cl->id->nick.length())
             {
@@ -266,17 +270,17 @@ void apply_key(const KeyEvent& match, Client* cl, bool raw)
                 cl->ui.m_dfplex_chat_config = false;
                 return;
             }
-            else if ((match.type == type_unicode || match.type == type_key) && match.unicode == 'N')
+            else if ((match.type == EventType::type_unicode || match.type == EventType::type_key) && match.unicode == 'N')
             {
                 cl->ui.m_dfplex_chat_name_entering = true;
             }
-            else if ((match.type == type_unicode || match.type == type_key) && match.unicode == 'H')
+            else if ((match.type == EventType::type_unicode || match.type == EventType::type_key) && match.unicode == 'H')
             {
                 cl->ui.m_dfplex_hide_chat ^= true;
             }
             for (int32_t i = 0; i < 8; ++i)
             {
-                if ((match.type == type_unicode || match.type == type_key) && match.unicode == '0' + i)
+                if ((match.type == EventType::type_unicode || match.type == EventType::type_key) && match.unicode == '0' + i)
                 {
                     cl->id->nick_colour = i;
                     return;
@@ -301,13 +305,13 @@ void apply_key(const KeyEvent& match, Client* cl, bool raw)
             cl->id->nick = replace_all(cl->id->nick, " ", "-");
             return;
         }
-        else if ((match.type == type_unicode || match.type == type_key) && match.unicode == CHAT_NAME_KEY)
+        else if ((match.type == EventType::type_unicode || match.type == EventType::type_key) && match.unicode == CHAT_NAME_KEY)
         {
             cl->ui.m_dfplex_chat_config = true;
             return;
         }
     }
-    if (MULTIPLEXKEY != 0 && (match.type == type_unicode || match.type == type_key) && match.unicode == MULTIPLEXKEY)
+    if (MULTIPLEXKEY != 0 && (match.type == EventType::type_unicode || match.type == EventType::type_key) && match.unicode == MULTIPLEXKEY)
     {
         // enter uniplex mode.
         if (uniplexing_requested)
@@ -335,12 +339,12 @@ void apply_key(const KeyEvent& match, Client* cl, bool raw)
         }
         return;
     }
-    if (cl && DEBUGKEY != 0 && (match.type == type_unicode || match.type == type_key) && match.unicode == DEBUGKEY)
+    if (cl && DEBUGKEY != 0 && (match.type == EventType::type_unicode || match.type == EventType::type_key) && match.unicode == DEBUGKEY)
     {
         // toggle debug mode
         cl->m_debug_enabled ^= true;
     }
-    if (SERVERDEBUGKEY != 0 && (match.type == type_unicode || match.type == type_key) && match.unicode == SERVERDEBUGKEY)
+    if (SERVERDEBUGKEY != 0 && (match.type == EventType::type_unicode || match.type == EventType::type_key) && match.unicode == SERVERDEBUGKEY)
     {
         // toggle debug mode
         server_debug_out ^= true;
@@ -352,9 +356,9 @@ void apply_key(const KeyEvent& match, Client* cl, bool raw)
         int32_t client_id = get_client_index(cl->ui.m_client_screen_cycle.get());
         if (client_id == -1) client_id = get_client_index(cl->id.get());
         int32_t delta = 0;
-        if (NEXT_CLIENT_POS_KEY != 0 &&  (match.type == type_unicode || match.type == type_key) && match.unicode == NEXT_CLIENT_POS_KEY)
+        if (NEXT_CLIENT_POS_KEY != 0 &&  (match.type == EventType::type_unicode || match.type == EventType::type_key) && match.unicode == NEXT_CLIENT_POS_KEY)
             delta++;
-        if (PREV_CLIENT_POS_KEY != 0 &&  (match.type == type_unicode || match.type == type_key) && match.unicode == PREV_CLIENT_POS_KEY)
+        if (PREV_CLIENT_POS_KEY != 0 &&  (match.type == EventType::type_unicode || match.type == EventType::type_key) && match.unicode == PREV_CLIENT_POS_KEY)
             delta--;
         
         cl->ui.m_following_client = false;
@@ -441,6 +445,14 @@ static void update_uniplexing()
     
     // get key inputs and update all clients' state.
     size_t i = 0;
+    
+    for (Client* client = get_client(i); client; i++, client = get_client(i))
+    {
+        if (client->update_cb) client->update_cb(client, { false });
+    }
+    
+    i = 0;
+    
     for (Client* client = get_client(i); client; i++, client = get_client(i))
     {
         apply_keys(client, true);
@@ -457,7 +469,7 @@ static void update_uniplexing()
         std::string("(UP) ")
         + (menu_modified ? "[" : "") + focus_string + (menu_modified ? "]" : "")
         + " +" + std::to_string(get_vs_depth(vs));
-    for (Client* client = get_client(i); client; i++, client = get_client(i))
+    for (Client* volatile client = get_client(i); client; i++, client = get_client(i))
     {
         // (info) UP -- uniplexing
         client->info_message = info_message;
@@ -521,6 +533,8 @@ static bool update_multiplexing(Client* client)
             {
                 vs->logic();
             }
+            
+            if (client->update_cb) client->update_cb(client, { true });
             
             apply_keys(client, false);
             

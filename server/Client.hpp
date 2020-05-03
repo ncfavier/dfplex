@@ -19,6 +19,7 @@
 #include <queue>
 #include <set>
 #include <memory>
+#include <functional>
 
 struct ClientIdentity
 {
@@ -294,8 +295,24 @@ struct ClientTile
 // array of all tiles on the screen
 typedef ClientTile screenbuf_t[256 * 256];
 
+struct Client;
+struct ClientUpdateInfo
+{
+    bool is_multiplex;
+};
+typedef std::function<void(Client*, const ClientUpdateInfo&)> client_update_cb;
+
 struct Client {
     std::shared_ptr<ClientIdentity> id{ new ClientIdentity() };
+    
+    // Called once per update.
+    //
+    // If multiplexing, update occurs after state restore but
+    // before post-state capture (and before screen capture).
+    //
+    // Should populate Client::keyqueue. For example:
+    //   client->keyqueue.emplace(df::enums::interface_key::D_DESIGNATE);
+    client_update_cb update_cb;
     
     std::string info_message; // this string is displayed to the user.
     
