@@ -31,6 +31,7 @@ public:
     std::vector<ChatMessage> m_messages;
     size_t m_active_message_index = 0;
     
-    void push_message(ChatMessage&&);
+    // (virtual methods are not linked -- so this can be called from other plugins.)
+    virtual void push_message(ChatMessage&&);
     void tick(Client*);
 };

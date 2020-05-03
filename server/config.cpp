@@ -4,6 +4,7 @@
 */
 
 #include "config.hpp"
+#include "hackutil.hpp"
 #include "Core.h"
 
 bool AUTOSAVE_WHILE_IDLE = 0;
@@ -27,6 +28,7 @@ size_t MAX_MESSAGE_COUNT = 0x10000;
 bool CHAT_ENABLED = true;
 bool MULTISIZE = true;
 std::string SECRET = ""; // auth is disabled by default
+std::vector<std::string> g_ban_list;
 
 #include <iostream>
 #include <fstream>
@@ -49,11 +51,48 @@ vector<string> split(const char *str, char c)
     return result;
 }
 
+bool load_bans()
+{
+    g_ban_list.clear();
+    ifstream f("data/init/bans.txt");
+    if (!f.is_open()) {
+        static bool already_displayed_error = false;
+        if (!already_displayed_error)
+        {
+            already_displayed_error = true;
+    		DFHack::Core::printerr("DFPlex failed to open bans list file; skipping.\n");
+            DFHack::Core::printerr("(Expected config file data/init/bans.txt)\n");
+        }
+		return false;
+	}
+    
+    string line;
+	while(getline(f, line)) {
+        size_t comment = line.find("#");
+        if (comment != std::string::npos)
+        {
+            line = line.substr(0, comment);
+        }
+        
+        // trim
+        while (startsWith(line, " ")) line = line.substr(1);
+        while (endsWith(line, " ")) line = line.substr(0, line.length() - 1);
+        
+        if (line.length())
+        {
+            g_ban_list.push_back(line);
+        }
+    }
+    
+    return true;
+}
+
 bool load_text_file()
 {
 	ifstream f("data/init/dfplex.txt");
 	if (!f.is_open()) {
-		DFHack::Core::printerr("Webfort failed to open config file, skipping.\n");
+		DFHack::Core::printerr("DFPlex failed to open config file; skipping.\n");
+        DFHack::Core::printerr("(Expected config file data/init/dfplex.txt)\n");
 		return false;
 	}
 

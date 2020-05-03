@@ -6,9 +6,6 @@
 
 #pragma once
 
-// this is a hacky fix for a windows build error.
-#include "modules/EventManager.h"
-
 #include "Client.hpp"
 #include "ColorText.h"
 #include "chat.hpp"

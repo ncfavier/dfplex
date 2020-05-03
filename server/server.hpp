@@ -6,6 +6,9 @@
 
 #pragma once
 
+// this is a hacky fix for a windows build error.
+#include "modules/EventManager.h"
+
 #include <ctime>
 #include <map>
 #include <string>

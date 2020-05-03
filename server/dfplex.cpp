@@ -64,6 +64,7 @@
 #include "config.hpp"
 #include "screenbuf.hpp"
 #include "state.hpp"
+#include "serverlog.hpp"
 
 using namespace DFHack;
 using namespace df::enums;
@@ -679,6 +680,12 @@ void dfplex_update()
     dfplex_mutex.lock();
     //CoreSuspender suspend;
     
+    // reload ban list every 45 seconds.
+    if (frames_elapsed % (60 * 45) == 0)
+    {
+        load_bans();
+    }
+    
     df::viewscreen* vs;
     virtual_identity* id;
     (void)id;
@@ -839,6 +846,13 @@ static void enable()
     if (enabled) return;
     enabled = true;
     
+    if (DFPlex::log_begin("dfplex_server.log"))
+    {
+        Core::printerr("Failed to open dfplex_server.log for output.\n");
+    }
+    DFPlex::log_message("Server started.");
+    DFPlex::log_message("================================");
+    
     EventManager::registerListener(EventManager::EventType::REPORT, 
     EventManager::EventHandler {
         on_report, 0
@@ -861,6 +875,10 @@ static void disable()
     if (!enabled) return;
     enabled = false;
     
+    DFPlex::log_message("Server closed.");
+    
+    DFPlex::log_end();
+    
     unhook_renderer();
 }
 
@@ -880,6 +898,8 @@ DFhackCExport command_result plugin_init(color_ostream &out, vector <PluginComma
     }
 
     load_config();
+    
+    load_bans();
     
     if (command_init())
     {

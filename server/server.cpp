@@ -4,9 +4,10 @@
  * Copyright (c) 2020 white-rabbit, ISC license
  */
 
+#include "dfplex.hpp"
 #include "server.hpp"
 #include "config.hpp"
-#include "dfplex.hpp"
+#include "serverlog.hpp"
 #include "DFHackVersion.h"
 #include "Core.h"
 
@@ -124,6 +125,8 @@ void remove_client(Client* cl)
 Client* add_client()
 {
     Client* cl = *clients.emplace(new Client()).first;
+    
+    DFPlex::log_message("A new client has joined.");
     
     // clear screen
     memset(cl->sc, 0, sizeof(cl->sc));
@@ -258,6 +261,14 @@ void on_open(server* s, conn_hdl hdl)
     }
 
     auto raw_conn = s->get_con_from_hdl(hdl);
+    std::string addr = raw_conn->get_raw_socket().remote_endpoint().address().to_string();
+    
+    if (std::find(g_ban_list.begin(), g_ban_list.end(), addr) != g_ban_list.end())
+    {
+        s->close(hdl, 4002, "Banned.");
+        return;
+    }
+    
 	auto path = split(raw_conn->get_resource().substr(1).c_str(), '/');
     std::string nick = path[0];
 	std::string user_secret = (path.size() > 1) ? path[1] : "";
@@ -269,8 +280,18 @@ void on_open(server* s, conn_hdl hdl)
 
     Client* cl = add_client();
 	cl->id->is_admin = (user_secret == SECRET);
-    cl->id->addr = raw_conn->get_remote_endpoint();
+    cl->id->addr = addr;
     cl->id->nick = nick;
+    
+    DFPlex::log_message("  Client addr: \"" + addr + "\"");
+    if (cl->id->is_admin)
+    {
+        DFPlex::log_message("  Client is admin.");
+    }
+    if (cl->id->nick.length())
+    {
+        DFPlex::log_message("  Client nick: " + nick);
+    }
     
     clients.emplace(cl);
     conn_map[hdl] = cl;
