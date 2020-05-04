@@ -739,7 +739,19 @@ void center_view_on_coord(const Coord& _c)
     auto dims = DFHack::Gui::getDwarfmodeViewDims();
     c.x -= (dims.map_x2 - dims.map_x1) / 2;
     c.y -= (dims.y2 - dims.y1) / 2;
+    
+    int32_t w = df::global::world->map.x_count;
+    int32_t h = df::global::world->map.y_count;
+    
+    // bounds clamping
+    if (w > 0)
+    {
+        c.x = std::min<int32_t>(c.x, w - (dims.map_x2 - dims.map_x1) - 1);
+        c.y = std::min<int32_t>(c.y, h - (dims.y2 - dims.y1) - 1);
+    }
+    
     if (c.x < 0) c.x = 0;
     if (c.y < 0) c.y = 0;
+    
     Gui::setViewCoords(c.x, c.y, c.z);
 }

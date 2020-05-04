@@ -279,6 +279,10 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
                 apply_keys(cl, D_STOCKPILES);
                 savekeys = { ui.m_stockpile_mode };
                 rkey.m_restore_stockpile_state = true;
+                if (ui.m_custom_stockpile_set)
+                {
+                    df::global::ui->stockpile.custom_settings = ui.m_custom_stockpile;
+                }
                 keys.clear();
             }
             if (contains(keys, D_DESIGNATE))

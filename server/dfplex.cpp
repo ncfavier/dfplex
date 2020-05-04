@@ -763,7 +763,25 @@ void dfplex_update()
                             if (cl && cl->ui.m_following_client && cl->ui.m_client_screen_cycle == client->id)
                             {
                                 restore_size();
+                                
+                                // set to client's screen size
                                 set_size(cl->desired_dimx, cl->desired_dimy);
+                                
+                                // center on client's screen (or cursor if available.)
+                                if (client->ui.m_cursorcoord_set && client->ui.m_cursorcoord.x >= 0)
+                                {
+                                    center_view_on_coord(client->ui.m_cursorcoord);
+                                }
+                                else if (client->ui.m_viewcoord_set && client->ui.m_viewcoord.x >= 0)
+                                {
+                                    center_view_on_coord(client->ui.m_viewcoord.operator+
+                                        ({client->ui.m_map_dimx/2, client->ui.m_map_dimy/2, 0})
+                                    );
+                                }
+                                
+                                // use client's sidebar status
+                                Gui::setMenuWidth(cl->ui.m_menu_width, cl->ui.m_area_map_width);
+                                
                                 perform_render();
                                 scrape_screenbuf(cl);
                                 transfer_screenbuf_client(cl);

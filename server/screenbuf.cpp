@@ -384,6 +384,7 @@ void modify_screenbuf(Client* cl)
                             bool follow_bold = false;
                             if (cl->ui.m_following_client && cl->ui.m_client_screen_cycle.get() && cl->ui.m_client_screen_cycle != cl->id)
                             {
+                                Client* spectatee = get_client(cl->ui.m_client_screen_cycle.get());
                                 follow_name = cl->ui.m_client_screen_cycle->nick;
                                 follow_colour = cl->ui.m_client_screen_cycle->nick_colour;
                                 if (!follow_name.length())
@@ -400,7 +401,15 @@ void modify_screenbuf(Client* cl)
                                 }
                                 
                                 // triangles flanking name
-                                follow_name = std::string(1, 16) + follow_name + std::string(1,17);
+                                // open if the player is following someone else, closed otherwise.
+                                if (spectatee && spectatee->ui.m_following_client)
+                                {
+                                    follow_name = ">" + follow_name + "<";
+                                }
+                                else
+                                {
+                                    follow_name = std::string(1, 16) + follow_name + std::string(1,17);
+                                }
                             }
                             write_to_screen((dims.menu_x2 + dims.menu_x1) / 2 - follow_name.length() / 2, y, 
                                 follow_name,
