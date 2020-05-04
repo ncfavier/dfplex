@@ -414,6 +414,8 @@ static void restore_data(Client* client)
     df::global::ui_sidebar_menus->designation.priority = ui.m_designate_priority;
     df::global::ui_sidebar_menus->location.in_create = false;
     df::global::ui_sidebar_menus->location.in_choose_deity = false;
+    if (ui.m_custom_stockpile_set)
+        df::global::ui->stockpile.custom_settings = ui.m_custom_stockpile;
 }
 
 // restores some state that comes after the keyqueue
@@ -808,6 +810,8 @@ void capture_post_state(Client* client)
     ui.m_designate_marker = df::global::ui_sidebar_menus->designation.marker_only;
     ui.m_designate_priority_set = df::global::ui_sidebar_menus->designation.priority_set;
     ui.m_designate_priority = df::global::ui_sidebar_menus->designation.priority;
+    ui.m_custom_stockpile_set = true;
+    ui.m_custom_stockpile = df::global::ui->stockpile.custom_settings;
 
     // map view dimensions
     if (is_dwarf_mode())
