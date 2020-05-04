@@ -414,10 +414,6 @@ static void restore_data(Client* client)
     df::global::ui_sidebar_menus->designation.priority = ui.m_designate_priority;
     df::global::ui_sidebar_menus->location.in_create = false;
     df::global::ui_sidebar_menus->location.in_choose_deity = false;
-    if (ui.m_custom_stockpile_set)
-    {
-        df::global::ui->stockpile.custom_settings = ui.m_custom_stockpile;
-    }
 }
 
 // restores some state that comes after the keyqueue
@@ -616,6 +612,14 @@ RestoreResult restore_state(Client* client)
             restore_unit_view_state(client);
         }
         
+        if (rkey.m_restore_stockpile_state)
+        {
+            if (ui.m_custom_stockpile_set)
+            {
+                df::global::ui->stockpile.custom_settings = ui.m_custom_stockpile;
+            }
+        }
+        
         // change the restorekey's observed menu.
         menu_id menu_id = get_current_menu_id();
         size_t menu_depth = get_vs_depth(vs);
@@ -721,12 +725,11 @@ RestoreResult restore_state(Client* client)
     return RestoreResult::SUCCESS;
 }
 
-bool isBuildMenu(){
-    using df::global::ui;
+static bool isBuildMenu(){
     return df::global::ui->main.mode == df::enums::ui_sidebar_mode::Build;
 }
 
-bool isBuildPositionMenu(){
+static bool isBuildPositionMenu(){
     using df::global::ui_build_selector;
     if (ui_build_selector)
     {
@@ -797,7 +800,7 @@ void capture_post_state(Client* client)
         {
             // save and restore build menu cursor
             ui.m_buildcoord_set = true;
-            ui.m_buildcoord =  ui.m_cursorcoord;
+            ui.m_buildcoord = ui.m_cursorcoord;
         } else if (id != &df::viewscreen_dwarfmodest::_identity || !isBuildMenu()){
             ui.m_buildcoord_set = false;
         }
@@ -813,8 +816,11 @@ void capture_post_state(Client* client)
     ui.m_designate_priority_set = df::global::ui_sidebar_menus->designation.priority_set;
     ui.m_designate_priority = df::global::ui_sidebar_menus->designation.priority;
     
-    ui.m_custom_stockpile_set = true;
-    ui.m_custom_stockpile = df::global::ui->stockpile.custom_settings;
+    if (df::global::ui->main.mode == df::enums::ui_sidebar_mode::Stockpiles)
+    {
+        ui.m_custom_stockpile_set = true;
+        ui.m_custom_stockpile = df::global::ui->stockpile.custom_settings;
+    }
 
     // map view dimensions
     if (is_dwarf_mode())

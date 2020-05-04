@@ -475,6 +475,13 @@ menu_id get_current_menu_id()
     {
         focus = replace_all(focus, "/On", "");
         focus = replace_all(focus, "/Off", "");
+        
+        // FIXME: just replace the focusstring logic completely for this screen. This is dumb. :/
+        focus = replace_all(focus, "Animals/Animals", "Animals");
+        focus = replace_all(focus, "Corpses/Corpses", "Corpses");
+        focus = replace_all(focus, "Coins/Coins", "Coins");
+        focus = replace_all(focus, "Leather/Leather", "Leather");
+        focus = replace_all(focus, "Wood/Wood", "Wood");
     }
     
     // replace /Job suffix with /Empty
