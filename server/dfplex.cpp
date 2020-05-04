@@ -739,26 +739,44 @@ void dfplex_update()
                 {
                     Client* client = get_client(current_user_state_index);
                     if (!client) continue; // paranoia
-                    
+
                     // user works with global pause state
                     World::SetPauseState(global_pause);
-                    
+
                     set_size(client->desired_dimx, client->desired_dimy);
-                    
+
                     if (update_multiplexing(client))
                     {
                         // transfer screen to this client
-                        perform_render();
-                        scrape_screenbuf(client);
-                        transfer_screenbuf_client(client);
+                        if (!client->ui.m_following_client || !client->ui.m_client_screen_cycle)
+                        {
+                            perform_render();
+                            scrape_screenbuf(client);
+                            transfer_screenbuf_client(client);
+                        }
+
+                        // transfer screen to all spectators
+                        for (size_t i = 0; i < clients_count; ++i)
+                        {
+                            Client *cl = get_client(i);
+
+                            if (cl && cl->ui.m_following_client && cl->ui.m_client_screen_cycle == client->id)
+                            {
+                                restore_size();
+                                set_size(cl->desired_dimx, cl->desired_dimy);
+                                perform_render();
+                                scrape_screenbuf(cl);
+                                transfer_screenbuf_client(cl);
+                            }
+                        }
                     }
-                    
+
                     restore_size();
-                    
+
                     if (plexing) return_to_root();
-                    
+
                     global_pause = World::ReadPauseState();
-                    
+
                     if (!plexing) break;
                 }
             }
