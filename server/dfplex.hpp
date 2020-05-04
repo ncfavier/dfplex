@@ -12,9 +12,9 @@
 #include "Client.hpp"
 #include "ColorText.h"
 #include "chat.hpp"
-#include <fast_mutex.h>
+#include <tinythread.h>
 
-extern tthread::fast_mutex dfplex_mutex;
+extern tthread::mutex dfplex_mutex;
 extern bool global_pause;
 extern bool plexing;
 extern int32_t frames_elapsed;

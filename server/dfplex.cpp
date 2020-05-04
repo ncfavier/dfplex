@@ -79,7 +79,7 @@ using df::renderer;
 
 static tthread::thread * wsthread;
 static tthread::thread * staticserver_thread;
-tthread::fast_mutex dfplex_mutex;
+tthread::mutex dfplex_mutex;
 
 ChatLog g_chatlog;
 
