@@ -26,6 +26,7 @@ bool is_paused();
 // please make sure that dfplex_mutex is locked before calling, regardless
 // of callee thread.
 size_t get_client_count();
+Client* get_client_by_id(client_long_id_t id); // retrieves client by unique number assigned to each client.
 Client* get_client(int32_t n); // retrieves nth client.
 Client* get_client(const ClientIdentity*); // retrieves client by identity
 int get_client_index(const ClientIdentity*); // retrieves client index by identity (or -1 if not found)

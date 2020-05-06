@@ -82,7 +82,7 @@ include_directories(websocketpp)
 include_directories(cpp-httplib)
 
 if (isPlugin)
-	DFHACK_PLUGIN(dfplex ${SRC} LINK_LIBRARIES dfhack-tinythread ${PROJECT_LIBS})
+	DFHACK_PLUGIN(dfplex ${SRC} LINK_LIBRARIES dfhack-tinythread ${PROJECT_LIBS} lua)
 	target_link_libraries(dfplex ${Boost_LIBRARIES})
 	INSTALL(DIRECTORY ../dist/shared/ DESTINATION .)
 	INSTALL(DIRECTORY ../static/ DESTINATION ./hack/www)
@@ -105,7 +105,7 @@ else()
 	)
 
 	add_library(dfplex.plug SHARED ${SRC})
-	target_link_libraries(dfplex.plug ${PROJECT_LIBS})
+	target_link_libraries(dfplex.plug ${PROJECT_LIBS} lua)
 	# Installing
 	install(TARGETS dfplex.plug
 		RUNTIME DESTINATION ${DF_ROOT}/hack/plugins

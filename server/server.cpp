@@ -143,6 +143,10 @@ Client* add_client()
     
     DFPlex::log_message("A new client has joined.");
     
+    // assign identity
+    uint64_t id = 1;
+    cl->id->long_id = id++;
+    
     // clear screen
     memset(cl->sc, 0, sizeof(cl->sc));
 
@@ -179,6 +183,20 @@ Client* get_client(const ClientIdentity* id)
     {
         if (it == clients.end()) return nullptr;
         if ((*it)->id.get() == id) return *it;
+        it++;
+    }
+    
+    // paranoia
+    return nullptr;
+}
+
+Client* get_client_by_id(client_long_id_t long_id)
+{
+    auto it = clients.begin();
+    for (size_t i = 0; true; ++i)
+    {
+        if (it == clients.end()) return nullptr;
+        if ((*it)->id->long_id == long_id) return *it;
         it++;
     }
     

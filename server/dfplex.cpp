@@ -65,6 +65,7 @@
 #include "screenbuf.hpp"
 #include "state.hpp"
 #include "serverlog.hpp"
+#include "callbacks.hpp"
 
 using namespace DFHack;
 using namespace df::enums;
@@ -513,6 +514,8 @@ static bool update_multiplexing(Client* client)
         switch(result)
         {
         case RestoreResult::SUCCESS:
+        
+            DFPlex::run_cb_post_state_restore(client);
             
             UPDATE_VS(vs, id);
             
@@ -908,6 +911,12 @@ static void disable()
 {
     if (!enabled) return;
     enabled = false;
+    
+    DFPlex::run_cb_shutdown();
+    
+    DFPlex::cleanup_callbacks();
+    
+    // TODO: shut down static site server, websockets.
     
     DFPlex::log_message("Server closed.");
     

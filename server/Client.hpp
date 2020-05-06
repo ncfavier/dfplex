@@ -21,12 +21,15 @@
 #include <memory>
 #include <functional>
 
+typedef int64_t client_long_id_t;
+
 struct ClientIdentity
 {
     std::string addr;
     std::string nick;
     uint8_t nick_colour = 0;
     bool is_admin = false;
+    client_long_id_t long_id = 0;
 };
 
 // a command which is part of the algorithm for
