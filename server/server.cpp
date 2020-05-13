@@ -13,36 +13,6 @@
 #include "tinythread.h"
 
 #include <cassert>
-#include <websocketpp/config/asio_no_tls.hpp>
-#include <websocketpp/server.hpp>
-
-namespace ws = websocketpp;
-// FIXME: use unique_ptr or the boost equivalent
-typedef ws::connection_hdl conn_hdl;
-
-static std::owner_less<conn_hdl> conn_lt;
-inline bool operator==(const conn_hdl& p, const conn_hdl& q)
-{
-    return (!conn_lt(p, q) && !conn_lt(q, p));
-}
-inline bool operator!=(const conn_hdl& p, const conn_hdl& q)
-{
-    return conn_lt(p, q) || conn_lt(q, p);
-}
-
-namespace lib = websocketpp::lib;
-using websocketpp::lib::placeholders::_1;
-using websocketpp::lib::placeholders::_2;
-using websocketpp::lib::bind;
-
-typedef ws::server<ws::config::asio> server;
-
-typedef server::message_ptr message_ptr;
-
-static conn_hdl null_conn = std::weak_ptr<void>();
-
-std::map<conn_hdl, Client*, std::owner_less<conn_hdl>> conn_map;
-std::set<Client*> clients;
 
 #include "config.hpp"
 #include "dfplex.hpp"
@@ -58,6 +28,8 @@ using df::global::gps;
 static unsigned char buf[0x100000];
 
 static std::ostream* out;
+
+std::set<Client*> clients;
 
 class logbuf : public std::stringbuf {
 public:
@@ -90,22 +62,6 @@ public:
         str("");
         return 0;
     }
-};
-
-class appbuf : public std::stringbuf {
-public:
-    appbuf(server* i_srv) : std::stringbuf()
-    {
-        srv = i_srv;
-    }
-    int sync()
-    {
-        srv->get_alog().write(ws::log::alevel::app, this->str());
-        str("");
-        return 0;
-    }
-private:
-    server* srv;
 };
 
 // TODO: migrate to dfplex.cpp?
@@ -219,13 +175,6 @@ int get_client_index(const ClientIdentity* id)
     return -1;
 }
 
-Client* get_client(conn_hdl hdl)
-{
-    auto iter = conn_map.find(hdl);
-    if (iter == conn_map.end()) return nullptr;
-    return iter->second;
-}
-
 std::string str(std::string s)
 {
     return "\"" + s + "\"";
@@ -253,97 +202,10 @@ std::string status_json()
     return json.str();
 }
 
-void on_http(server* s, conn_hdl hdl)
+// cl is not const b/c we modify the "modified" flag per-tile for delta encoding.
+size_t tock(Client* cl)
 {
-    server::connection_ptr con = s->get_con_from_hdl(hdl);
-    std::stringstream output;
-    std::string route = con->get_resource();
-    if (route == STATUS_ROUTE) {
-        con->set_status(websocketpp::http::status_code::ok);
-        con->replace_header("Content-Type", "application/json");
-        con->replace_header("Access-Control-Allow-Origin", "*");
-        con->set_body(status_json());
-    }
-}
-
-bool validate_open(server* s, conn_hdl hdl)
-{
-    auto raw_conn = s->get_con_from_hdl(hdl);
-
-    std::vector<std::string> protos = raw_conn->get_requested_subprotocols();
-    if (std::find(protos.begin(), protos.end(), WF_VERSION) != protos.end()) {
-        raw_conn->select_subprotocol(WF_VERSION);
-    } else if (std::find(protos.begin(), protos.end(), WF_INVALID) != protos.end()) {
-        raw_conn->select_subprotocol(WF_INVALID);
-    }
-
-    return true;
-}
-
-void on_open(server* s, conn_hdl hdl)
-{
-    tthread::lock_guard<decltype(dfplex_mutex)> guard(dfplex_mutex);
-    if (s->get_con_from_hdl(hdl)->get_subprotocol() == WF_INVALID) {
-        s->close(hdl, 4000, "Invalid version, expected '" WF_VERSION "'.");
-        return;
-    }
-
-    if (clients.size() >= MAX_CLIENTS && MAX_CLIENTS != 0) {
-        s->close(hdl, 4001, "Server is full.");
-        return;
-    }
-
-    auto raw_conn = s->get_con_from_hdl(hdl);
-    std::string addr = raw_conn->get_raw_socket().remote_endpoint().address().to_string();
-    
-    if (std::find(g_ban_list.begin(), g_ban_list.end(), addr) != g_ban_list.end())
-    {
-        s->close(hdl, 4003, "Banned.");
-        return;
-    }
-    
-	auto path = split(raw_conn->get_resource().substr(1).c_str(), '/');
-    std::string nick = path[0];
-	std::string user_secret = (path.size() > 1) ? path[1] : "";
-
-    if (nick == "__NOBODY") {
-        s->close(hdl, 4002, "Invalid nickname.");
-        return;
-    }
-
-    Client* cl = add_client();
-	cl->id->is_admin = (user_secret == SECRET);
-    cl->id->addr = addr;
-    cl->id->nick = nick;
-    
-    DFPlex::log_message("  Client addr: \"" + addr + "\"");
-    if (cl->id->is_admin)
-    {
-        DFPlex::log_message("  Client is admin.");
-    }
-    if (cl->id->nick.length())
-    {
-        DFPlex::log_message("  Client nick: " + nick);
-    }
-    
-    clients.emplace(cl);
-    conn_map[hdl] = cl;
-}
-
-void on_close(server* s, conn_hdl c)
-{
-    tthread::lock_guard<decltype(dfplex_mutex)> guard(dfplex_mutex);
-    
-    remove_client(get_client(c));
-    
-    conn_map.erase(c);
-}
-
-void tock(server* s, conn_hdl hdl)
-{
-    // not const b/c we modify the "modified" flag per-tile for delta encoding.
-    Client* cl = get_client(hdl);
-    if (!cl) return;
+    if (!cl) return 0;
     
     unsigned char *b = buf;
     // [0] msgtype
@@ -400,7 +262,7 @@ void tock(server* s, conn_hdl hdl)
             if (tile >= 256 * 256) break;
             if (b >= buf + sizeof(buf) - 0x400)
             {
-                return;
+                return 0;
             }
             ClientTile& ct = cl->sc[tile]; // client's tile
             if (ct.modified)
@@ -418,20 +280,11 @@ void tock(server* s, conn_hdl hdl)
             }
         }
     }
-    s->send(hdl, (const void*) buf, (size_t)(b-buf), ws::frame::opcode::binary);
+    return (b - buf);
 }
 
-void on_message(server* s, conn_hdl hdl, message_ptr msg)
+size_t on_message(Client* cl, const unsigned char* mdata, size_t msz)
 {
-    tthread::lock_guard<decltype(dfplex_mutex)> guard(dfplex_mutex);
-    
-    auto str = msg->get_payload();
-    const unsigned char *mdata = (const unsigned char*) str.c_str();
-    int msz = str.size();
-    
-    Client* cl = get_client(hdl);
-    if (!cl) return;
-
     if (mdata[0] == 117 && msz == 3) { // ResizeEvent
         cl->desired_dimx = mdata[1];
         cl->desired_dimy = mdata[2];
@@ -459,11 +312,280 @@ void on_message(server* s, conn_hdl hdl, message_ptr msg)
         // in particular, this sets the modified flag to 0.
         memset(cl->sc, 0, sizeof(cl->sc));
     } else {
-        tock(s, hdl);
+        return tock(cl);
+    }
+    
+    return 0;
+}
+
+#ifdef DFPLEX_IXW
+#include <ixwebsocket/IXNetSystem.h>
+#include <ixwebsocket/IXWebSocketServer.h>
+
+using namespace ix;
+
+typedef std::shared_ptr<ConnectionState> conn_hdl_t;
+typedef std::shared_ptr<WebSocket> WebSocketPtr;
+
+std::map<conn_hdl_t, std::shared_ptr<ClientIdentity>> conn_map;
+
+Client* get_client(conn_hdl_t connection)
+{
+    auto iter = conn_map.find(connection);
+    if (iter == conn_map.end()) return nullptr;
+    return get_client(iter->second.get());
+}
+
+void on_open_ix(const ix::WebSocketMessagePtr& msg, conn_hdl_t connection, WebSocketPtr webSocket)
+{
+    tthread::lock_guard<decltype(dfplex_mutex)> guard(dfplex_mutex);
+
+    // TODO
+}
+
+void on_close_ix(const ix::WebSocketMessagePtr& msg, conn_hdl_t connection, WebSocketPtr webSocket)
+{
+    tthread::lock_guard<decltype(dfplex_mutex)> guard(dfplex_mutex);
+
+    auto iter = conn_map.find(connection);
+    if (iter != conn_map.end())
+    {
+        Client* cl = get_client(iter->second.get());
+        conn_map.erase(iter);
+        remove_client(cl);
     }
 }
 
-void on_init(conn_hdl hdl, boost::asio::ip::tcp::socket & s)
+void on_message_ix(const ix::WebSocketMessagePtr& msg, conn_hdl_t connection, WebSocketPtr webSocket)
+{
+    tthread::lock_guard<decltype(dfplex_mutex)> guard(dfplex_mutex);
+    
+    Client* cl = get_client(connection);
+    
+    if (cl)
+    {
+        size_t response_size = on_message(
+            cl,
+            reinterpret_cast<const uint8_t*>(msg->str.c_str()),
+            msg->str.length()
+        );
+        
+        // send response
+        if (response_size)
+        {
+            webSocket->send(
+                std::string(reinterpret_cast<char*>(buf), response_size),
+                true // binary mode
+            );
+        }
+    }
+}
+
+void wsthreadmain(void *i_raw_out)
+{
+    logbuf lb;
+    std::ostream logstream(&lb);
+
+    ix::initNetSystem();
+    
+    ix::WebSocketServer server(PORT);
+    
+    server.setOnConnectionCallback(
+    [&server](std::shared_ptr<WebSocket> webSocket,
+              std::shared_ptr<ConnectionState> connectionState)
+    {
+        webSocket->setOnMessageCallback(
+            [webSocket, connectionState, &server](const ix::WebSocketMessagePtr& msg)
+            {
+                if (msg->type == ix::WebSocketMessageType::Open)
+                {
+                    DFHack::Core::print("New connection\n");
+                    on_open_ix(msg, connectionState, webSocket);
+                }
+                else if (msg->type == ix::WebSocketMessageType::Message)
+                {
+                    on_message_ix(msg, connectionState, webSocket);
+                }
+                else if (msg->type == ix::WebSocketMessageType::Close)
+                {
+                    on_close_ix(msg, connectionState, webSocket);
+                }
+            }
+        );
+    });
+    
+    auto res = server.listen();
+    if (!res.first)
+    {
+        DFHack::Core::printerr("Websocket server failed to start on port %d. (Is the port in use?)\n", PORT);
+    }
+    DFHack::Core::printerr("Websocket server starting on port %d using IXWebSocket.", PORT);
+
+    // Run the server in the background. Server can be stoped by calling server.stop()
+    server.start();
+
+    // Block until server.stop() is called.
+    server.wait();
+    
+    ix::uninitNetSystem();
+}
+#endif
+
+#ifdef DFPLEX_WEBSOCKETPP
+#include <websocketpp/config/asio_no_tls.hpp>
+#include <websocketpp/server.hpp>
+
+namespace ws = websocketpp;
+// FIXME: use unique_ptr or the boost equivalent
+typedef ws::connection_hdl conn_hdl;
+
+static std::owner_less<conn_hdl> conn_lt;
+inline bool operator==(const conn_hdl& p, const conn_hdl& q)
+{
+    return (!conn_lt(p, q) && !conn_lt(q, p));
+}
+inline bool operator!=(const conn_hdl& p, const conn_hdl& q)
+{
+    return conn_lt(p, q) || conn_lt(q, p);
+}
+
+namespace lib = websocketpp::lib;
+using websocketpp::lib::placeholders::_1;
+using websocketpp::lib::placeholders::_2;
+using websocketpp::lib::bind;
+
+typedef ws::server<ws::config::asio> server;
+
+typedef server::message_ptr message_ptr;
+
+static conn_hdl null_conn = std::weak_ptr<void>();
+
+std::map<conn_hdl, Client*, std::owner_less<conn_hdl>> conn_map;
+
+class appbuf : public std::stringbuf {
+public:
+    appbuf(server* i_srv) : std::stringbuf()
+    {
+        srv = i_srv;
+    }
+    int sync()
+    {
+        srv->get_alog().write(ws::log::alevel::app, this->str());
+        str("");
+        return 0;
+    }
+private:
+    server* srv;
+};
+
+Client* get_client(conn_hdl hdl)
+{
+    auto iter = conn_map.find(hdl);
+    if (iter == conn_map.end()) return nullptr;
+    return iter->second;
+}
+
+void on_http_ws(server* s, conn_hdl hdl)
+{
+    server::connection_ptr con = s->get_con_from_hdl(hdl);
+    std::stringstream output;
+    std::string route = con->get_resource();
+    if (route == STATUS_ROUTE) {
+        con->set_status(websocketpp::http::status_code::ok);
+        con->replace_header("Content-Type", "application/json");
+        con->replace_header("Access-Control-Allow-Origin", "*");
+        con->set_body(status_json());
+    }
+}
+
+bool validate_open_ws(server* s, conn_hdl hdl)
+{
+    auto raw_conn = s->get_con_from_hdl(hdl);
+
+    std::vector<std::string> protos = raw_conn->get_requested_subprotocols();
+    if (std::find(protos.begin(), protos.end(), WF_VERSION) != protos.end()) {
+        raw_conn->select_subprotocol(WF_VERSION);
+    } else if (std::find(protos.begin(), protos.end(), WF_INVALID) != protos.end()) {
+        raw_conn->select_subprotocol(WF_INVALID);
+    }
+
+    return true;
+}
+
+void on_open_ws(server* s, conn_hdl hdl)
+{
+    tthread::lock_guard<decltype(dfplex_mutex)> guard(dfplex_mutex);
+    if (s->get_con_from_hdl(hdl)->get_subprotocol() == WF_INVALID) {
+        s->close(hdl, 4000, "Invalid version, expected '" WF_VERSION "'.");
+        return;
+    }
+
+    if (clients.size() >= MAX_CLIENTS && MAX_CLIENTS != 0) {
+        s->close(hdl, 4001, "Server is full.");
+        return;
+    }
+
+    auto raw_conn = s->get_con_from_hdl(hdl);
+    std::string addr = raw_conn->get_raw_socket().remote_endpoint().address().to_string();
+    
+    if (std::find(g_ban_list.begin(), g_ban_list.end(), addr) != g_ban_list.end())
+    {
+        s->close(hdl, 4003, "Banned.");
+        return;
+    }
+    
+	auto path = split(raw_conn->get_resource().substr(1).c_str(), '/');
+    std::string nick = path[0];
+	std::string user_secret = (path.size() > 1) ? path[1] : "";
+
+    if (nick == "__NOBODY") {
+        s->close(hdl, 4002, "Invalid nickname.");
+        return;
+    }
+
+    Client* cl = add_client();
+	cl->id->is_admin = (user_secret == SECRET);
+    cl->id->addr = addr;
+    cl->id->nick = nick;
+    
+    DFPlex::log_message("  Client addr: \"" + addr + "\"");
+    if (cl->id->is_admin)
+    {
+        DFPlex::log_message("  Client is admin.");
+    }
+    if (cl->id->nick.length())
+    {
+        DFPlex::log_message("  Client nick: " + nick);
+    }
+    
+    clients.emplace(cl);
+    conn_map[hdl] = cl;
+}
+
+void on_close_ws(server* s, conn_hdl c)
+{
+    tthread::lock_guard<decltype(dfplex_mutex)> guard(dfplex_mutex);
+    
+    remove_client(get_client(c));
+    
+    conn_map.erase(c);
+}
+
+void on_message_ws(server* s, conn_hdl hdl, message_ptr msg)
+{
+    tthread::lock_guard<decltype(dfplex_mutex)> guard(dfplex_mutex);
+    auto str = msg->get_payload();
+    const unsigned char *mdata = (const unsigned char*) str.c_str();
+    int msz = str.size();
+    
+    size_t response = on_message(get_client(hdl), mdata, msz);
+    if (response)
+    {
+        s->send(hdl, (const void*) buf, response, ws::frame::opcode::binary);
+    }
+}
+
+void on_init_ws(conn_hdl hdl, boost::asio::ip::tcp::socket & s)
 {
     s.set_option(boost::asio::ip::tcp::no_delay(true));
 }
@@ -496,12 +618,12 @@ void wsthreadmain(void *i_raw_out)
 
         srv.get_alog().set_ostream(&logstream);
 
-        srv.set_socket_init_handler(&on_init);
-        srv.set_http_handler(bind(&on_http, &srv, ::_1));
-        srv.set_validate_handler(bind(&validate_open, &srv, ::_1));
-        srv.set_open_handler(bind(&on_open, &srv, ::_1));
-        srv.set_message_handler(bind(&on_message, &srv, ::_1, ::_2));
-        srv.set_close_handler(bind(&on_close, &srv, ::_1));
+        srv.set_socket_init_handler(&on_init_ws);
+        srv.set_http_handler(bind(&on_http_ws, &srv, ::_1));
+        srv.set_validate_handler(bind(&validate_open_ws, &srv, ::_1));
+        srv.set_open_handler(bind(&on_open_ws, &srv, ::_1));
+        srv.set_message_handler(bind(&on_message_ws, &srv, ::_1, ::_2));
+        srv.set_close_handler(bind(&on_close_ws, &srv, ::_1));
         // See https://stackoverflow.com/a/548912
         // Prevent segfaults when restarting dwarf fortress, if the port was
         // not released properly on exit
@@ -517,7 +639,7 @@ void wsthreadmain(void *i_raw_out)
         }
 
         srv.start_accept();
-        *out << "Dwarfplex websocket serving on " << PORT << std::endl;
+        *out << "Dwarfplex websocket serving on " << PORT << " using websocketpp." << std::endl;
         *out << "(Do not connect to this in your browser.) " << std::endl;
     } catch (const std::exception & e) {
         *out << "Dwarfplex failed to start: " << e.what() << std::endl;
@@ -538,3 +660,5 @@ void wsthreadmain(void *i_raw_out)
     }
     return;
 }
+
+#endif
