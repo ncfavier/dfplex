@@ -340,7 +340,36 @@ void on_open_ix(const ix::WebSocketMessagePtr& msg, conn_hdl_t connection, WebSo
 {
     tthread::lock_guard<decltype(dfplex_mutex)> guard(dfplex_mutex);
 
-    // TODO
+    // TODO: validate connection (see on_open_ws)
+    
+    std::string addr = webSocket->getUrl(); // FIXME: is this actually the endpoint address?
+    
+    if (std::find(g_ban_list.begin(), g_ban_list.end(), addr) != g_ban_list.end())
+    {
+        // TODO: close with "Banned" message
+        return;
+    }
+    
+    // FIXME: parse URL for these
+    std::string nick = "";
+    std::string user_secret = "";
+    
+    Client* cl = add_client();
+	cl->id->is_admin = (user_secret == SECRET);
+    cl->id->addr = addr;
+    cl->id->nick = nick;
+    
+    DFPlex::log_message("  Client addr: \"" + addr + "\"");
+    if (cl->id->is_admin)
+    {
+        DFPlex::log_message("  Client is admin.");
+    }
+    if (cl->id->nick.length())
+    {
+        DFPlex::log_message("  Client nick: " + nick);
+    }
+    
+    conn_map[connection] = cl->id;
 }
 
 void on_close_ix(const ix::WebSocketMessagePtr& msg, conn_hdl_t connection, WebSocketPtr webSocket)
@@ -538,11 +567,6 @@ void on_open_ws(server* s, conn_hdl hdl)
     std::string nick = path[0];
 	std::string user_secret = (path.size() > 1) ? path[1] : "";
 
-    if (nick == "__NOBODY") {
-        s->close(hdl, 4002, "Invalid nickname.");
-        return;
-    }
-
     Client* cl = add_client();
 	cl->id->is_admin = (user_secret == SECRET);
     cl->id->addr = addr;
@@ -558,7 +582,6 @@ void on_open_ws(server* s, conn_hdl hdl)
         DFPlex::log_message("  Client nick: " + nick);
     }
     
-    clients.emplace(cl);
     conn_map[hdl] = cl;
 }
 
