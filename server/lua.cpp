@@ -152,6 +152,16 @@ namespace
         }
     }
     
+    void lua_lock_dfplex_mutex()
+    {
+        dfplex_mutex.lock();
+    }
+    
+    void lua_unlock_dfplex_mutex()
+    {
+        dfplex_mutex.unlock();
+    }
+    
     int lua_get_client_viewcoord(lua_State* L)
     {
         int id = lua_tointeger(L, -1);
@@ -224,6 +234,8 @@ DFHACK_PLUGIN_LUA_FUNCTIONS {
     DFHACK_LUA_FUNCTION(get_client_id_by_index),
     DFHACK_LUA_FUNCTION(set_client_cursorcoord),
     DFHACK_LUA_FUNCTION(set_client_viewcoord),
+    DFHACK_LUA_FUNCTION(lock_dfplex_mutex),
+    DFHACK_LUA_FUNCTION(unlock_dfplex_mutex),
     DFHACK_LUA_END
 };
 
