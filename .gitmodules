@@ -4,3 +4,6 @@
 [submodule "server/cpp-httplib"]
 	path = server/cpp-httplib
 	url = https://github.com/yhirose/cpp-httplib
+[submodule "server/IXWebSocket"]
+	path = server/IXWebSocket
+	url = https://github.com/machinezone/IXWebSocket
