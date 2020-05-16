@@ -47,16 +47,6 @@ else(UNIX)
 		-DNOMINMAX
 		-DWIN32_LEAN_AND_MEAN
 	)
-	option(DL_DEPS "Download dependencies as windows binaries over https." ON)
-	# Download deps
-	if(DL_DEPS)
-		message("Downloading dependencies. This may take a while.")
-		file(DOWNLOAD https://s3.amazonaws.com/webfort/webfort-deps-r1.tar.gz
-			${WFDIR}/webfort-deps.tar.gz
-			EXPECTED_MD5 24e047672dc7cd787556810620838549)
-		execute_process(COMMAND ${CMAKE_COMMAND} -E tar xzf ${WFDIR}/webfort-deps.tar.gz WORKING_DIRECTORY ${WFDIR})
-		message("Dependencies downloaded :)")
-	endif()
 
 	set(BOOST_ROOT ${WFDIR}/boost)
 	link_directories(${BOOST_ROOT}/lib) # Boost doesn't find everything
