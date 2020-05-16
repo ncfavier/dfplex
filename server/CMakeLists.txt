@@ -58,7 +58,7 @@ set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_SHARED_LIBS ON)
 set(Boost_USE_MULTITHREADED ON)
 set(WS_BOOST_LIBS system)
-find_package(Boost 1.38.0 REQUIRED COMPONENTS "${WS_BOOST_LIBS}")
+find_package(Boost 1.49.0 REQUIRED COMPONENTS "${WS_BOOST_LIBS}")
 
 if(Boost_FOUND)
 	include_directories(${Boost_INCLUDE_DIRS})
