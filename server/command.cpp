@@ -592,7 +592,7 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
         if (is_designation_mode(df::global::ui->main.mode))
         {
             // possibly set the new default designation
-            for (const auto& _key : keys)
+            for (const auto& _key : inkeys)
             {
                 if (_key >= DESIGNATE_DIG && _key < DESIGNATE_TRAFFIC)
                 {
