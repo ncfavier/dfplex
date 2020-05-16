@@ -32,6 +32,10 @@ struct ClientIdentity
     client_long_id_t long_id = 0;
 };
 
+struct Client;
+
+typedef std::function<int(Client*)> restore_state_cb_t;
+
 // a command which is part of the algorithm for
 // restoring menu state.
 struct RestoreKey
@@ -56,25 +60,12 @@ struct RestoreKey
     
     // additional misc. properties ------------------------------------------
     
-    // restore cursor position before/after applying this?
-    bool m_pre_restore_cursor = false;
-    Coord m_cursor; // only used for pre, never post.
-    bool m_post_restore_cursor = false;
-
-    // don't do the default sidebar-refresh after this command is applied?
-    bool m_suppress_sidebar_refresh = false;
+    // these run when this command is applied, which could affect some state.
+    // return non-zero value in case of error.
+    std::vector<restore_state_cb_t> m_callbacks;
     
-    // restore custom stockpile settings after applying?
-    bool m_restore_stockpile_state = false;
-    
-    // restore squad state after applying?
-    bool m_restore_squad_state = false;
-    
-    // restore unit view menu state after applying?
-    bool m_restore_unit_view_state = false;
-    
-    // do not save cursor position
-    bool m_freeze_cursor = false;
+    // as above, but these run after applying the key.
+    std::vector<restore_state_cb_t> m_callbacks_post;
     
     RestoreKey()=default;
     RestoreKey(df::interface_key key)

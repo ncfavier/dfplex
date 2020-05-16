@@ -12,6 +12,7 @@
 #include "df/ui_sidebar_mode.h"
 #include "df/viewscreen.h"
 #include "df/viewscreen_meetingst.h"
+#include "df/ui_build_selector.h"
 #include "df/unit.h"
 #include "modules/Gui.h"
 #include "modules/Screen.h"
@@ -193,3 +194,26 @@ void center_view_on_coord(const Coord&);
 bool is_siege();
 
 int32_t renaming_squad_id();
+
+// FIXME: make these functions not inline.
+inline bool isBuildMenu(){
+    return df::global::ui->main.mode == df::enums::ui_sidebar_mode::Build;
+}
+
+inline bool isBuildPositionMenu(){
+    using df::global::ui_build_selector;
+    if (ui_build_selector)
+    {
+        // Not selecting, or no choices?
+        if (ui_build_selector->building_type < 0)
+            return false;
+        else if (ui_build_selector->stage != 2)
+        {
+            if (ui_build_selector->stage != 1)
+                return false;
+            else
+                return true;
+        }
+    }
+    return false;
+}

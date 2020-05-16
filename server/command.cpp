@@ -8,6 +8,7 @@
 #include "dfplex.hpp"
 #include "parse_config.hpp"
 #include "config.hpp"
+#include "state_cb.hpp"
 
 #include "DataDefs.h"
 
@@ -127,10 +128,10 @@ if (contains(keys, UNITJOB_ZOOM_CRE)) \
     ui.m_restore_keys.clear(); \
     ui.m_restore_keys.emplace_back(); \
     ui.m_restore_keys.back().m_interface_keys = { D_VIEWUNIT }; \
-    ui.m_restore_keys.back().m_restore_unit_view_state = true; \
+    ui.m_restore_keys.back().m_callbacks_post.emplace_back(restore_unit_view_state); \
     ui.m_viewcycle = 0; \
-    suppress_sidebar_refresh = true; \
-    post_restore_cursor = true; \
+    callbacks.emplace_back(suppress_sidebar_refresh); \
+    callbacks_post.emplace_back(restore_cursor); \
     blockcatch = true; \
 } \
 
@@ -160,21 +161,22 @@ static void apply_keys(Client* cl, df::interface_key key, Args... args)
 }
 
 // nudge cursor back and forth once to update sidebar.
-static void cursornudge(Client* cl, bool post=true)
+static void cursornudge(Client* cl, bool restore_previous_frame_location=true)
 {
     UIState& ui = cl->ui;
     {
         // we need to make sure that the
         // cursor is in the correct spot.
         RestoreKey none;
-        Gui::getCursorCoords(none.m_cursor.x, none.m_cursor.y, none.m_cursor.z);
-        if (post)
+        if (restore_previous_frame_location)
         {
-            none.m_post_restore_cursor = true;
+            // m_callbacks_post is used here instead of m_callbacks for legacy reasons
+            // -- it can be changed when this has been proven not to matter.
+            none.m_callbacks_post.emplace_back(restore_cursor);
         }
         else
         {
-            none.m_pre_restore_cursor = true;
+            none.m_callbacks.emplace_back(produce_restore_cb_restore_cursor());
         }
         
         // go up and down to refresh the placement location (for material selection)
@@ -209,9 +211,8 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
     std::set<df::interface_key>& savekeys = rkey.m_interface_keys;
     bool& _catch = rkey.m_catch;
     bool& blockcatch = rkey.m_blockcatch;
-    bool& suppress_sidebar_refresh = rkey.m_suppress_sidebar_refresh;
-    bool& post_restore_cursor = rkey.m_post_restore_cursor;
-    bool& restore_cursor = rkey.m_pre_restore_cursor;
+    auto& callbacks = rkey.m_callbacks;
+    auto& callbacks_post = rkey.m_callbacks_post;
     bool& observe_for_autorewind = rkey.m_catch_observed_autorewind;
     menu_id& post_menu_id = rkey.m_post_menu;
     size_t& post_menu_depth = rkey.m_post_menu_depth;
@@ -278,11 +279,25 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
             {
                 apply_keys(cl, D_STOCKPILES);
                 savekeys = { ui.m_stockpile_mode };
-                rkey.m_restore_stockpile_state = true;
-                if (ui.m_custom_stockpile_set)
+                
+                // this function restores the stockpile state.
+                restore_state_cb_t restore_stockpile_state = [](Client* client) -> int
                 {
-                    df::global::ui->stockpile.custom_settings = ui.m_custom_stockpile;
-                }
+                    UIState& ui = client->ui;
+                    if (ui.m_custom_stockpile_set)
+                    {
+                        df::global::ui->stockpile.custom_settings = ui.m_custom_stockpile;
+                    }
+                    return 0;
+                };
+                
+                // call now to restore the stockpile state for this frame.
+                restore_stockpile_state(cl);
+                
+                // call every frame hereafter.
+                rkey.m_callbacks_post.emplace_back(std::move(restore_stockpile_state));
+                
+                // apply_keys has D_STOCKPILES, which is all we need -- no need to apply anything else.
                 keys.clear();
             }
             if (contains(keys, D_DESIGNATE))
@@ -297,9 +312,9 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
             {
                 savekeys = { D_SQUADS };
                 keys.clear();
-                rkey.m_restore_squad_state = true;
+                rkey.m_callbacks_post.emplace_back(restore_squads_state);
                 
-                // squad menu id is funny, this is important
+                // squad menu id is weird, this is important
                 rkey.m_post_menu = "*";
                 rkey.m_post_menu_depth = get_vs_depth(vs);
             }
@@ -307,37 +322,37 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
             //! RATIONALE these all need consistent cursor position
             if (contains(keys, D_VIEWUNIT))
             {
-                rkey.m_restore_unit_view_state = true;
+                callbacks_post.emplace_back(restore_unit_view_state);
                 ui.m_viewcycle = 0;
                 
-                suppress_sidebar_refresh = true;
-                post_restore_cursor = true;
+                callbacks.emplace_back(suppress_sidebar_refresh);
+                callbacks_post.emplace_back(restore_cursor);
                 
                 // stop rewinds due to the unit view changing here.
                 blockcatch = true;
             }
             if (contains(keys, D_BUILDJOB))
             {
-                suppress_sidebar_refresh = true;
-                post_restore_cursor = true;
+                callbacks.emplace_back(suppress_sidebar_refresh);
+                callbacks_post.emplace_back(restore_cursor);
                 observe_for_autorewind = true;
                 blockcatch = true;
             }
             if (contains(keys, D_LOOK))
             {
-                suppress_sidebar_refresh = true;
-                post_restore_cursor = true;
+                callbacks.emplace_back(suppress_sidebar_refresh);
+                callbacks_post.emplace_back(restore_cursor);
             }
             if (contains(keys, D_BUILDITEM))
             {
-                suppress_sidebar_refresh = true;
-                post_restore_cursor = true;
+                callbacks.emplace_back(suppress_sidebar_refresh);
+                callbacks_post.emplace_back(restore_cursor);
                 blockcatch = true;
             }
             if (contains(keys, D_CIVZONE))
             {
-                suppress_sidebar_refresh = true;
-                post_restore_cursor = true;
+                callbacks.emplace_back(suppress_sidebar_refresh);
+                callbacks_post.emplace_back(restore_cursor);
                 blockcatch = true;
             }
             break;
@@ -376,7 +391,7 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
                     // error out if we don't arrive here.
                     post_menu_id = "dwarfmode/Build/Material/Groups";
                     post_menu_depth = get_vs_depth(vs);
-                    suppress_sidebar_refresh = true;
+                    callbacks.emplace_back(suppress_sidebar_refresh);
                     savekeys.insert(SELECT);
                 }
             }
@@ -553,8 +568,15 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
                         if (startsWith(fs, "dwarfmode/QueryBuilding/Some/Lever"))
                         {
                             // levers have cursor weirdness, they need to remember it.
-                            restore_cursor = true;
-                            rkey.m_freeze_cursor = true; // prevents cursor saving on all future frames
+                            callbacks.emplace_back(produce_restore_cb_restore_cursor());
+                            
+                            // prevents cursor saving on all future frames
+                            callbacks.emplace_back([](Client* client) -> int
+                                {
+                                    client->ui.m_freeze_cursor = true;
+                                    return 0;
+                                }
+                            );
                             ui.m_freeze_cursor = true; // prevents cursor saving for this frame
                         }
                         savekeys = { BUILDJOB_ADD };
@@ -576,12 +598,12 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
                     if (contains(keys, BUILDJOB_STOCKPILE_GIVE_TO))
                     {
                         savekeys = { BUILDJOB_STOCKPILE_GIVE_TO };
-                        restore_cursor = true;
+                        callbacks.emplace_back(produce_restore_cb_restore_cursor());
                     }
                     if (contains(keys, BUILDJOB_STOCKPILE_MASTER))
                     {
                         savekeys = { BUILDJOB_STOCKPILE_MASTER };
-                        restore_cursor = true;
+                        callbacks.emplace_back(produce_restore_cb_restore_cursor());
                     }
                 }
             }
@@ -949,9 +971,6 @@ void apply_command(std::set<df::interface_key>& keys, Client* cl, bool raw)
         {
             // remove any pointless "NONE" commands
             rkey.m_interface_keys.erase(NONE);
-            
-            // fill in the cursor position (not always used.)
-            Gui::getCursorCoords(rkey.m_cursor.x, rkey.m_cursor.y, rkey.m_cursor.z);
             
             // observed menu
             rkey.m_observed_menu = menu_id;

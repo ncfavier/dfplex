@@ -14,6 +14,7 @@
 #include "screenbuf.hpp"
 #include "server.hpp"
 #include "state.hpp"
+#include "state_cb.hpp"
 
 #include <stdint.h>
 #include <iostream>
@@ -46,7 +47,6 @@
 #include "df/report.h"
 #include "df/squad_position.h"
 #include "df/squad.h"
-#include "df/ui_build_selector.h"
 #include "df/ui_sidebar_menus.h"
 #include "df/ui_unit_view_mode.h"
 #include "df/unit.h"
@@ -90,51 +90,6 @@ static void getOptCoord(bool& io_set, Coord& o_coord, getcoords_t getcoords)
     }
 }
 
-// helper function for restore_state.
-static void restore_cursor(Client* client)
-{
-    UIState& ui = client->ui;
-    
-    // sets viewcoords
-    if (ui.m_viewcoord_set)
-    {
-        Gui::setViewCoords(ui.m_viewcoord.x, ui.m_viewcoord.y, ui.m_viewcoord.z);
-    }
-    if (ui.m_following_client && ui.m_client_screen_cycle.get())
-    {
-        Client* dst = get_client(ui.m_client_screen_cycle.get());
-        if (dst)
-        {
-            center_view_on_coord(dst->ui.m_stored_viewcoord.operator+(
-                {dst->ui.m_map_dimx/2, dst->ui.m_map_dimy/2, 0})
-            );
-        }
-    }
-    
-    // sets cursor coords
-    if (ui.m_cursorcoord_set)
-    {
-        Gui::setCursorCoords(ui.m_cursorcoord.x, ui.m_cursorcoord.y, ui.m_cursorcoord.z);
-    }
-    if (ui.m_designationcoord_set)
-    {
-        Gui::setDesignationCoords(ui.m_designationcoord.x, ui.m_designationcoord.y, ui.m_designationcoord.z);
-    }
-    if (ui.m_squadcoord_start_set)
-    {
-        df::global::ui->squads.rect_start.x = ui.m_squadcoord_start.x;
-        df::global::ui->squads.rect_start.y = ui.m_squadcoord_start.y;
-        df::global::ui->squads.rect_start.z = ui.m_squadcoord_start.z;
-    }
-    if (ui.m_burrowcoord_set)
-    {
-        df::global::ui->burrows.rect_start.x = ui.m_burrowcoord.x;
-        df::global::ui->burrows.rect_start.y = ui.m_burrowcoord.y;
-        df::global::ui->burrows.rect_start.z = ui.m_burrowcoord.z;
-    }
-    df::global::ui->burrows.brush_erasing = ui.m_brush_erasing;
-}
-
 std::string UIState::debug_trace() const
 {
     std::string trace = "";
@@ -163,26 +118,6 @@ std::string UIState::debug_trace() const
             trace += "[this frame: " + key.m_observed_menu + " +" + std::to_string(key.m_observed_menu_depth) + "]";
             if (key.m_catch_observed_autorewind) trace += "]";
         }
-        if (key.m_pre_restore_cursor)
-        {
-            trace += " +pre-cursor"; // FIXME: write coordinates here
-        }
-        if (key.m_post_restore_cursor)
-        {
-            trace += " +post-cursor";
-        }
-        if (key.m_suppress_sidebar_refresh)
-        {
-            trace += " +no-sidebar-refresh";
-        }
-        if (key.m_freeze_cursor)
-        {
-            trace += " +freeze-cursor";
-        }
-        if (key.m_restore_squad_state)
-        {
-            trace += " +squad";
-        }
         if (key.m_catch)
         {
             trace += " +catchpoint";
@@ -196,177 +131,6 @@ std::string UIState::debug_trace() const
     }
     
     return trace;
-}
-
-bool menu_id_matches(const menu_id& a, const menu_id& b)
-{
-    if (a == K_NOCHECK) return true;
-    
-    if (a == b) return true;
-    
-    // negation
-    if (startsWith(a, "^"))
-    {
-        return a.substr(1) != b;
-    }
-    
-    return false;
-}
-
-// returns false on error.
-static bool restore_unit_view_state(Client* client)
-{
-    using namespace df::enums::interface_key;
-    
-    df::viewscreen* vs;
-    virtual_identity* id;
-    (void)id;
-    UPDATE_VS(vs, id);
-    
-    UIState& ui = client->ui;
-    df::global::ui_unit_view_mode->value = ui.m_unit_view_mode;
-    df::global::ui_sidebar_menus->show_combat = ui.m_show_combat;
-    df::global::ui_sidebar_menus->show_labor = ui.m_show_labor;
-    df::global::ui_sidebar_menus->show_misc = ui.m_show_misc;
-
-    // set df::global::ui_selected_unit
-    if (df::unit* unit = df::unit::find(ui.m_view_unit))
-    {
-        // go to unit's position.
-        Coord pos = unit->pos;
-        Gui::setCursorCoords(pos.x, pos.y, pos.z);
-        Gui::refreshSidebar();
-        
-        // rapidly tap UNITVIEW_NEXT until the unit we desire is found.
-        vs->feed_key(UNITVIEW_NEXT);
-        int32_t unit_sel_start = *df::global::ui_selected_unit;
-        bool success;
-        while (true)
-        {
-            vs->feed_key(UNITVIEW_NEXT);
-            if (df::unit* unit_selected = vector_get(world->units.active, *df::global::ui_selected_unit))
-            {
-                if (unit_selected->id == unit->id)
-                {
-                    success = true;
-                    break;
-                }
-            }
-            if (unit_sel_start == *df::global::ui_selected_unit)
-            {
-                success = false;
-                break;
-            }
-        }
-        
-        if (!success)
-        {
-            // return to the stored cursor position.
-            restore_cursor(client);
-            Gui::refreshSidebar();
-            return false;
-        }
-        else
-        {
-            ui.m_defer_restore_cursor = true;
-            ui.m_suppress_sidebar_refresh = true;
-            
-            // restore labour menu position
-            if (ui.m_unit_view_mode == df::ui_unit_view_mode::PrefLabor)
-            {
-                vs->feed_key(UNITVIEW_PRF);
-                vs->feed_key(UNITVIEW_PRF_PROF);
-                
-                // set scroll position
-                if (ui.m_view_unit_labor_submenu >= 0)
-                {
-                    for (int32_t i = 0; i < ui.m_view_unit_labor_submenu; ++i)
-                    {
-                        vs->feed_key(SECONDSCROLL_DOWN);
-                    }
-                    vs->feed_key(SELECT);
-                }
-                for (int32_t i = 0; i < ui.m_view_unit_labor_scroll; ++i)
-                {
-                    vs->feed_key(SECONDSCROLL_DOWN);
-                }
-            }
-            return true;
-        }
-    }
-    return false;
-}
-
-static void restore_squads_state(Client* client)
-{
-    UIState& ui = client->ui;
-    
-    auto& squads = df::global::ui->squads;
-    auto& ui_squads = ui.m_squads;
-    
-    // need to clear this on entry.
-    squads.in_kill_rect = false;
-    squads.in_kill_order = false;
-    squads.in_kill_list = false;
-    squads.in_move_order = false;
-    
-    // selected individuals
-    squads.in_select_indiv = ui_squads.in_select_indiv;
-    
-    // sanitize
-    squads.indiv_selected.clear();
-    for (int32_t figure_id : ui_squads.indiv_selected)
-    {
-        df::historical_figure* figure = df::historical_figure::find(figure_id);
-        if (!figure) continue;
-        df::unit* unit = df::unit::find(figure->unit_id);
-        if (!unit) continue;
-        
-        // ensure unit still part of a squad.
-        bool found_squad = false;
-        for (df::squad* squad : squads.list)
-        {
-            if (squad && squad->id == unit->military.squad_id)
-            {
-                found_squad = true;
-                break;
-            }
-        }
-        if (!found_squad) continue;
-        
-        // ensure unit is assigned to a squad position.
-        df::squad* squad = df::squad::find(unit->military.squad_id);
-        if (!squad) continue;
-        
-        bool found_position = false;
-        for (df::squad_position* squad_position : squad->positions)
-        {
-            if (squad_position && squad_position->occupant == figure_id)
-            {
-                found_position = true;
-            }
-        }
-        if (!found_position) continue;
-        
-        // we were unable to prove that this figure is not valid to select,
-        // so we will allow this figure to remain selected.
-        squads.indiv_selected.push_back(figure_id);
-    }
-    
-    // selected squads
-    for (size_t i = 0; i < squads.list.size() && i < squads.sel_squads.size(); ++i)
-    {
-        squads.sel_squads.at(i) = false;
-        
-        df::squad* squad = squads.list.at(i);
-        if (!squad) continue;
-        
-        squads.sel_squads.at(i) =
-            (
-                std::find(ui_squads.squad_selected.begin(), ui_squads.squad_selected.end(), squad->id)
-                != ui_squads.squad_selected.end()
-            );
-    }
 }
 
 // some squads state must be done after 
@@ -399,6 +163,19 @@ static void restore_squads_state_post(Client* client)
     }
 }
 
+// restores some state that comes after the keyqueue
+static void restore_post_state(Client* client)
+{
+    UIState& ui = client->ui;
+    if (df::global::ui_building_in_resize)
+    {
+        *df::global::ui_building_in_resize = ui.m_building_in_resize;
+        *df::global::ui_building_resize_radius = ui.m_building_resize_radius;
+    }
+    
+    restore_squads_state_post(client);
+}
+
 // helper function for restore_state.
 static void restore_data(Client* client)
 {
@@ -414,19 +191,6 @@ static void restore_data(Client* client)
     df::global::ui_sidebar_menus->designation.priority = ui.m_designate_priority;
     df::global::ui_sidebar_menus->location.in_create = false;
     df::global::ui_sidebar_menus->location.in_choose_deity = false;
-}
-
-// restores some state that comes after the keyqueue
-static void restore_post_state(Client* client)
-{
-    UIState& ui = client->ui;
-    if (df::global::ui_building_in_resize)
-    {
-        *df::global::ui_building_in_resize = ui.m_building_in_resize;
-        *df::global::ui_building_resize_radius = ui.m_building_resize_radius;
-    }
-    
-    restore_squads_state_post(client);
 }
 
 // helper function for restore_state
@@ -505,7 +269,8 @@ fail:
     return true;
 }
 
-bool tradelist_advance(Client* client)
+// helper function for apply_restore_key
+static bool tradelist_advance(Client* client)
 {
     df::viewscreen* vs;
     virtual_identity* id;
@@ -523,13 +288,139 @@ bool tradelist_advance(Client* client)
     return false;
 }
 
+// applies restore key 
+// returns true on error.
+std::string restore_state_error;
+bool apply_restore_key(Client* client)
+{
+    UIState& ui = client->ui;
+    RestoreKey& rkey = ui.m_restore_keys.at(ui.m_restore_progress);
+    df::viewscreen* vs;
+    virtual_identity* id;
+    UPDATE_VS(vs, id);
+    (void)id;
+    
+    // pre-apply callbacks
+    for (restore_state_cb_t& cb : rkey.m_callbacks)
+    {
+        if (int rc = cb(client))
+        {
+            restore_state_error = "Callback failed with error code " + std::to_string(rc);
+            return true;
+        }
+    }
+    
+    // feed requires a non-const pointer to the set, so we copy it here.
+    // OPTIMIZE: is this really necessary?
+    std::set<df::interface_key> keys = rkey.m_interface_keys;
+    
+    if (!keys.empty())
+    {
+        vs->feed(&keys);
+        UPDATE_VS(vs, id);
+    }
+    
+    // post-apply callbacks
+    for (restore_state_cb_t& cb : rkey.m_callbacks_post)
+    {
+        if (int rc = cb(client))
+        {
+            restore_state_error = "Callback failed with error code " + std::to_string(rc);
+            return true;
+        }
+    }
+    
+    // change the restorekey's observed menu.
+    menu_id menu_id = get_current_menu_id();
+    size_t menu_depth = get_vs_depth(vs);
+    
+    if (stabilize_list_menu(client))
+    {
+        restore_state_error = "Failed to stabilize cursor in " + menu_id;
+        
+        // erase past after this key.
+        ui.m_restore_keys.erase(
+            ui.m_restore_keys.begin() + ui.m_restore_progress + 1,
+            ui.m_restore_keys.end()
+        );
+        
+        return true;
+    }
+
+    if (rkey.m_blockcatch)
+    {
+        if (rkey.m_observed_menu != menu_id || rkey.m_observed_menu_depth != menu_depth)
+        {
+            goto stack_error;
+        }
+    }
+    rkey.m_observed_menu = menu_id;
+    rkey.m_observed_menu_depth = menu_depth;
+    
+    // validate that we have ended up in the right spot.
+    if (rkey.m_check_state)
+    {
+        if (menu_depth != rkey.m_post_menu_depth || !menu_id_matches(rkey.m_post_menu, menu_id))
+        {
+            // we did not arrive at the menu we expected to :(
+        stack_error:
+            
+            // error trace
+            if (rkey.m_check_state)
+            {
+                restore_state_error = "Expected " + rkey.m_post_menu + " +" + std::to_string(rkey.m_post_menu_depth);
+            }
+            else if (rkey.m_blockcatch)
+            {
+                restore_state_error = "Expected observed " + rkey.m_observed_menu + " +" + std::to_string(rkey.m_observed_menu_depth);
+                rkey.m_observed_menu = menu_id;
+                rkey.m_observed_menu_depth = menu_depth;
+            }
+            else
+            {
+                restore_state_error = "Unkown reason";
+            }
+            
+            restore_state_error += "; arrived at " + menu_id + " +" + std::to_string(menu_depth);
+        
+            restore_state_error += "\n" + ui.debug_trace();
+            restore_state_error += "\n(erasing from " + std::to_string(rkey.m_check_start) + " on)\n";
+            
+            // remove all keys past rkey.m_check_start
+            ui.m_restore_keys.erase(
+                ui.m_restore_keys.begin() + rkey.m_check_start,
+                ui.m_restore_keys.end()
+            );
+            
+            // we erased to before the current spot, so we have to retry as
+            // we have no ability to accurately rewind.
+            if (rkey.m_check_start <= ui.m_restore_progress)
+            {
+                // fail and try again from start next time.
+                ui.next();
+                return true;
+            }
+        }
+    }
+    
+    // tradelist immediately advances to a new screen
+    // ometimes, so we must simulate that.
+    if (tradelist_advance(client))
+    {
+        UPDATE_VS(vs, id);
+        //vs->feed_key(df::enums::interface_key::STANDARDSCROLL_DOWN);
+    }
+    
+    ui.m_restore_progress++;
+    return false;
+}
+
 // restores UI/view state for client
 // -- preconditions --
 // must be in the dfmode root menu.
 // -- return value --
 // returns true if (seemingly) successful, false if the state
 // was not successfully restored.
-std::string restore_state_error;
 RestoreResult restore_state(Client* client)
 {
     restore_state_error = "";
@@ -570,143 +461,10 @@ RestoreResult restore_state(Client* client)
     // apply state keys
     while (ui.m_restore_progress < ui.m_restore_keys.size())
     {
-        RestoreKey& rkey = ui.m_restore_keys.at(ui.m_restore_progress);
-        
-        // feed requires a non-const pointer to the set, so we copy it here.
-        // OPTIMIZE: is this really necessary?
-        std::set<df::interface_key> keys = rkey.m_interface_keys;
-        
-        if (rkey.m_suppress_sidebar_refresh)
+        if (apply_restore_key(client))
         {
-            ui.m_suppress_sidebar_refresh = true;
-        }
-        
-        if (rkey.m_pre_restore_cursor)
-        {
-            // note: key's cursor coords.
-            Gui::setCursorCoords(rkey.m_cursor.x, rkey.m_cursor.y, rkey.m_cursor.z);
-            Gui::refreshSidebar();
-        }
-        
-        if (!keys.empty())
-        {
-            vs->feed(&keys);
-            UPDATE_VS(vs, id);
-        }
-        
-        if (rkey.m_post_restore_cursor)
-        {
-            // note: ui cursor coords.
-            // Gui::setCursorCoords(ui.m_cursorcoord.x, ui.m_cursorcoord.y, ui.m_cursorcoord.z);
-            restore_cursor(client);
-            Gui::refreshSidebar();
-        }
-        
-        if (rkey.m_freeze_cursor)
-        {
-            ui.m_freeze_cursor = true;
-        }
-        
-        if (rkey.m_restore_unit_view_state)
-        {
-            restore_unit_view_state(client);
-        }
-        
-        if (rkey.m_restore_stockpile_state)
-        {
-            if (ui.m_custom_stockpile_set)
-            {
-                df::global::ui->stockpile.custom_settings = ui.m_custom_stockpile;
-            }
-        }
-        
-        // change the restorekey's observed menu.
-        menu_id menu_id = get_current_menu_id();
-        size_t menu_depth = get_vs_depth(vs);
-        
-        if (stabilize_list_menu(client))
-        {
-            restore_state_error = "Failed to stabilize cursor in " + menu_id;
-            
-            // erase past after this key.
-            ui.m_restore_keys.erase(
-                ui.m_restore_keys.begin() + ui.m_restore_progress + 1,
-                ui.m_restore_keys.end()
-            );
-            
             return RestoreResult::FAIL;
         }
-
-        if (rkey.m_blockcatch)
-        {
-            if (rkey.m_observed_menu != menu_id || rkey.m_observed_menu_depth != menu_depth)
-            {
-                goto stack_error;
-            }
-        }
-        rkey.m_observed_menu = menu_id;
-        rkey.m_observed_menu_depth = menu_depth;
-        
-        if (rkey.m_restore_squad_state)
-        {
-            restore_squads_state(client);
-        }
-        
-        // validate that we have ended up in the right spot.
-        if (rkey.m_check_state)
-        {
-            if (menu_depth != rkey.m_post_menu_depth || !menu_id_matches(rkey.m_post_menu, menu_id))
-            {
-                // we did not arrive at the menu we expected to :(
-            stack_error:
-                
-                // error trace
-                if (rkey.m_check_state)
-                {
-                    restore_state_error = "Expected " + rkey.m_post_menu + " +" + std::to_string(rkey.m_post_menu_depth);
-                }
-                else if (rkey.m_blockcatch)
-                {
-                    restore_state_error = "Expected observed " + rkey.m_observed_menu + " +" + std::to_string(rkey.m_observed_menu_depth);
-                    rkey.m_observed_menu = menu_id;
-                    rkey.m_observed_menu_depth = menu_depth;
-                }
-                else
-                {
-                    restore_state_error = "Unkown reason";
-                }
-                
-                restore_state_error += "; arrived at " + menu_id + " +" + std::to_string(menu_depth);
-            
-                restore_state_error += "\n" + ui.debug_trace();
-                restore_state_error += "\n(erasing from " + std::to_string(rkey.m_check_start) + " on)\n";
-                
-                // remove all keys past rkey.m_check_start
-                ui.m_restore_keys.erase(
-                    ui.m_restore_keys.begin() + rkey.m_check_start,
-                    ui.m_restore_keys.end()
-                );
-                
-                // we erased to before the current spot, so we have to retry as
-                // we have no ability to accurately rewind.
-                if (rkey.m_check_start <= ui.m_restore_progress)
-                {
-                    // fail and try again from start next time.
-                    ui.next();
-                    return RestoreResult::FAIL;
-                }
-            }
-        }
-        
-        // tradelist immediately advances to a new screen
-        // ometimes, so we must simulate that.
-        if (tradelist_advance(client))
-        {
-            UPDATE_VS(vs, id);
-            //vs->feed_key(df::enums::interface_key::STANDARDSCROLL_DOWN);
-        }
-        
-        ui.m_restore_progress++;
     }
     
     if (!ui.m_defer_restore_cursor && !ui.m_freeze_cursor)
@@ -723,28 +481,6 @@ RestoreResult restore_state(Client* client)
     // reset these for next stack traversal.
     ui.next();
     return RestoreResult::SUCCESS;
-}
-
-static bool isBuildMenu(){
-    return df::global::ui->main.mode == df::enums::ui_sidebar_mode::Build;
-}
-
-static bool isBuildPositionMenu(){
-    using df::global::ui_build_selector;
-    if (ui_build_selector)
-    {
-        // Not selecting, or no choices?
-        if (ui_build_selector->building_type < 0)
-            return false;
-        else if (ui_build_selector->stage != 2)
-        {
-            if (ui_build_selector->stage != 1)
-                return false;
-            else
-                return true;
-        }
-    }
-    return false;
 }
 
 // captures some of the state of the UI.

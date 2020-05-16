@@ -762,3 +762,18 @@ void center_view_on_coord(const Coord& _c)
     
     Gui::setViewCoords(c.x, c.y, c.z);
 }
+
+bool menu_id_matches(const menu_id& a, const menu_id& b)
+{
+    if (a == K_NOCHECK) return true;
+    
+    if (a == b) return true;
+    
+    // negation
+    if (startsWith(a, "^"))
+    {
+        return a.substr(1) != b;
+    }
+    
+    return false;
+}
