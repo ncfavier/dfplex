@@ -305,3 +305,9 @@ int restore_unit_view_state(Client* client)
     }
     return 0;
 }
+
+int refresh_sidebar(Client*)
+{
+    Gui::refreshSidebar();
+    return 0;
+}

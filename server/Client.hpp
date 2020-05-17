@@ -187,9 +187,14 @@ struct UIState
     bool m_dfplex_chat_name_entering = false;
     bool m_dfplex_hide_chat = false;
     
+    int32_t m_follow_unit_id = -1;
+    int32_t m_follow_item_id = -1;
+    
     // resets most UI state
     void reset()
     {
+        m_follow_unit_id = -1;
+        m_follow_item_id = -1;
         m_restore_keys.clear();
         m_restore_progress_root = 0;
         m_restore_progress = 0;

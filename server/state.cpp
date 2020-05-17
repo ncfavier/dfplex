@@ -42,6 +42,7 @@
 #include "df/graphic.h"
 #include "df/historical_figure.h"
 #include "df/interfacest.h"
+#include "df/item.h"
 #include "df/items_other_id.h"
 #include "df/renderer.h"
 #include "df/report.h"
@@ -191,6 +192,22 @@ static void restore_data(Client* client)
     df::global::ui_sidebar_menus->designation.priority = ui.m_designate_priority;
     df::global::ui_sidebar_menus->location.in_create = false;
     df::global::ui_sidebar_menus->location.in_choose_deity = false;
+    
+    // following unit
+    df::global::ui->follow_unit = ui.m_follow_unit_id;
+    if (df::unit::find(ui.m_follow_unit_id) == nullptr)
+    {
+        df::global::ui->follow_unit = -1;
+        ui.m_follow_unit_id = -1;
+    }
+    
+    // following item
+    df::global::ui->follow_item = ui.m_follow_item_id;
+    if (df::item::find(ui.m_follow_item_id) == nullptr)
+    {
+        df::global::ui->follow_item = -1;
+        ui.m_follow_item_id = -1;
+    }
 }
 
 // helper function for restore_state
@@ -482,10 +499,20 @@ RestoreResult restore_state(Client* client)
         }
     }
     
-    if (!ui.m_defer_restore_cursor && !ui.m_freeze_cursor)
+    if (!ui.m_defer_restore_cursor && !ui.m_freeze_cursor && !following_item_or_unit())
     {
         restore_cursor(client);
     }
+    
+    if (following_item_or_unit())
+    {
+        ui.m_suppress_sidebar_refresh = true;
+        
+        // This shouldn't do anything, but it seems to cause df to update
+        // the following camera coords.
+        vs->feed_key(df::enums::interface_key::UNITVIEW_FOLLOW);
+    }
+    
     restore_post_state(client);
     
     if (!ui.m_suppress_sidebar_refresh)
@@ -639,6 +666,12 @@ void capture_post_state(Client* client)
     ui.m_designationcoord_share = false;
     ui.m_squadcoord_share = false;
     ui.m_burrowcoord_share = false;
+    
+    // following unit
+    ui.m_follow_unit_id = df::global::ui->follow_unit;
+
+    // following item
+    ui.m_follow_item_id = df::global::ui->follow_item;
     
     // menu stabilizing
     ui.m_list_cursor.clear();

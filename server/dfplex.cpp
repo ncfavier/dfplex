@@ -532,11 +532,10 @@ static bool update_multiplexing(Client* client)
                 g_chatlog.tick(client);
             }
             
-            // update screen except if it would cause a tick.
-            if (!is_realtime_dwarf_menu())
-            {
-                vs->logic();
-            }
+            // update screen -- but make sure the game is paused so that it doesn't advance.
+            World::SetPauseState(true);            
+            vs->logic();
+            World::SetPauseState(global_pause);
             
             if (client->update_cb) client->update_cb(client, { true, false });
             

@@ -217,3 +217,8 @@ inline bool isBuildPositionMenu(){
     }
     return false;
 }
+
+inline bool following_item_or_unit()
+{
+    return df::global::ui->follow_item != -1 || df::global::ui->follow_unit != -1;
+}

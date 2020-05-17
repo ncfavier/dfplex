@@ -18,3 +18,5 @@ int restore_cursor(Client*);
 int restore_squads_state(Client*);
 
 int restore_unit_view_state(Client*);
+
+int refresh_sidebar(Client*);

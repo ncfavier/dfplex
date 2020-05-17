@@ -234,11 +234,6 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
             // single-stepping is handled by main logic.
             keys.erase(*iter);
             break;
-        case UNITVIEW_FOLLOW:
-        case D_LOOK_FOLLOW:
-            // TODO (feature) plex following
-            keys.erase(*iter);
-            break;
         case D_MILITARY_NAME_SQUAD:
         case D_MILITARY_ALERTS_NAME:
             keys.erase(*iter);
@@ -335,6 +330,7 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
             {
                 callbacks.emplace_back(suppress_sidebar_refresh);
                 callbacks_post.emplace_back(restore_cursor);
+                callbacks_post.emplace_back(refresh_sidebar);
                 observe_for_autorewind = true;
                 blockcatch = true;
             }
@@ -342,17 +338,20 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
             {
                 callbacks.emplace_back(suppress_sidebar_refresh);
                 callbacks_post.emplace_back(restore_cursor);
+                callbacks_post.emplace_back(refresh_sidebar);
             }
             if (contains(keys, D_BUILDITEM))
             {
                 callbacks.emplace_back(suppress_sidebar_refresh);
                 callbacks_post.emplace_back(restore_cursor);
+                callbacks_post.emplace_back(refresh_sidebar);
                 blockcatch = true;
             }
             if (contains(keys, D_CIVZONE))
             {
                 callbacks.emplace_back(suppress_sidebar_refresh);
                 callbacks_post.emplace_back(restore_cursor);
+                callbacks_post.emplace_back(refresh_sidebar);
                 blockcatch = true;
             }
             break;
@@ -869,7 +868,6 @@ void apply_command(std::set<df::interface_key>& keys, Client* cl, bool raw)
         // we will now apply the union of keys U rkey.m_interface_keys...
         keys.insert(rkey.m_interface_keys.begin(), rkey.m_interface_keys.end());
         
-        
         if (keys.empty())
         {
             return;
@@ -902,6 +900,9 @@ void apply_command(std::set<df::interface_key>& keys, Client* cl, bool raw)
             UPDATE_VS(vs, id);
         }
         
+        menu_id = get_current_menu_id();
+        menu_depth = get_vs_depth(vs);
+        
         // if we have returned to the root menu, clear the record state.
         if (is_at_root())
         {
@@ -909,9 +910,6 @@ void apply_command(std::set<df::interface_key>& keys, Client* cl, bool raw)
             keys.clear();
             return;
         }
-        
-        menu_id = get_current_menu_id();
-        menu_depth = get_vs_depth(vs);
         
         // fill in details if post-menu not set.
         if (rkey.m_post_menu == ::menu_id())
