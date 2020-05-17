@@ -163,7 +163,7 @@ struct UIState
     
     // stabilizes list-menus (e.g announcements, reports)
     // one per viewscreen on the stack.
-    std::vector<int32_t> m_list_cursor;
+    std::vector<intptr_t> m_list_cursor;
     
     // resize state
     bool m_building_in_resize = false;

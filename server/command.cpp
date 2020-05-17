@@ -121,10 +121,10 @@ static bool try_shrink_keyqueue_to(Client*, size_t menu_depth, menu_id menu_id);
     RUN_OVER_INKEYS(CURSOR_UP, CURSOR_DOWN_Z_AUX, REMOVE_CURSORSCROLL_HELPER)
 
 #define ZOOM_UNIT_ON(keyname) \
-if (contains(keys, UNITJOB_ZOOM_CRE)) \
+if (contains(keys, keyname)) \
 { \
     keys.clear(); \
-    vs->feed_key(UNITJOB_ZOOM_CRE); \
+    vs->feed_key(keyname); \
     ui.m_restore_keys.clear(); \
     ui.m_restore_keys.emplace_back(); \
     ui.m_restore_keys.back().m_interface_keys = { D_VIEWUNIT }; \
@@ -133,6 +133,16 @@ if (contains(keys, UNITJOB_ZOOM_CRE)) \
     ui.m_restore_keys.back().m_callbacks.emplace_back(suppress_sidebar_refresh); \
     ui.m_restore_keys.back().m_callbacks_post.emplace_back(restore_unit_view_state); \
     blockcatch = true; \
+} \
+
+#define ZOOM_ON(keyname) \
+if (contains(keys, keyname)) \
+{ \
+    keys.clear(); \
+    vs->feed_key(keyname); \
+    ui.m_restore_keys.clear(); \
+    rkey.m_interface_keys.clear(); \
+    return; \
 } \
 
 // applies and saves a key.
@@ -710,9 +720,13 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
     }
     else if (
         id == &df::viewscreen_announcelistst::_identity
-        #if 0
-        || id == &df::viewscreen_reportlistst::_identity
-        #endif
+    )
+    {
+        UNSTORE_STANDARDSCROLL();
+        ZOOM_ON(ANNOUNCE_ZOOM);
+    }
+    else if (
+        id == &df::viewscreen_reportlistst::_identity
     )
     {
         UNSTORE_STANDARDSCROLL();

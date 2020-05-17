@@ -68,6 +68,8 @@
 #include "df/viewscreen.h"
 #include "df/world.h"
 
+#include <functional>
+
 using namespace DFHack;
 using namespace df::enums;
 using df::global::world;
@@ -210,6 +212,60 @@ static void restore_data(Client* client)
     }
 }
 
+// hashes all permanent information about the currently-selected report.
+size_t hash_reportscreen_index(df::viewscreen_reportlistst* vs_r, int32_t index)
+{
+    std::hash<uintptr_t> hash;
+    
+    uintptr_t unit = reinterpret_cast<uintptr_t>(vector_get(vs_r->units, index));
+    uintptr_t mission_report = vector_get(vs_r->mission_reports, index);
+    uintptr_t spoils_report = vector_get(vs_r->spoils_reports, index);
+    uintptr_t report_type = static_cast<int32_t>(vector_get(vs_r->types, index));
+    // uintptr_t anon = reinterpret_cast<uintptr_t>(vector_get(vs_r->anon_1, index));
+    
+    return hash(unit)
+        ^ hash(hash(mission_report * 1062907 + 55871))
+        ^ hash(hash(hash(spoils_report * 28183 + 906557)))
+        ^ hash(hash(hash(hash(report_type * 44449 + 8353))));
+}
+
+// captures the state necessary to restore the cursor position in a menu for this viewscreen.
+// stores the state as a single intptr_t per viewscreen.
+static void capture_stabilize_list_menu(Client* client, df::viewscreen* vs)
+{
+    UIState& ui = client->ui;
+    if (!Screen::isDismissed(vs))
+    {
+        df::virtual_identity* _id = virtual_identity::get(vs);
+        if (_id == &df::viewscreen_announcelistst::_identity)
+        {
+            df::viewscreen_announcelistst* vs_a = static_cast<df::viewscreen_announcelistst*>(vs);
+            intptr_t cursor_store = -1;
+            if (df::report* report = vector_get(vs_a->reports, vs_a->sel_idx))
+            {
+                cursor_store = report->id;
+            }
+            int32_t vs_depth = get_vs_depth(vs);
+            ui.m_list_cursor.resize(vs_depth + 1);
+            ui.m_list_cursor[vs_depth] = cursor_store;
+        }
+        if (_id == &df::viewscreen_reportlistst::_identity)
+        {
+            df::viewscreen_reportlistst* vs_r = static_cast<df::viewscreen_reportlistst*>(vs);
+            
+            int32_t vs_depth = get_vs_depth(vs);
+            ui.m_list_cursor.resize(vs_depth + 1);
+            ui.m_list_cursor[vs_depth] = hash_reportscreen_index(vs_r, vs_r->cursor);
+        }
+        if (_id == &df::viewscreen_civlistst::_identity)
+        {
+            df::viewscreen_civlistst* vs_c = static_cast<df::viewscreen_civlistst*>(vs);
+            ui.m_civ_x = vs_c->map_x;
+            ui.m_civ_y = vs_c->map_y;
+        }
+    }
+}
+
 // helper function for restore_state
 // returns true on error.
 static bool stabilize_list_menu(Client* client)
@@ -224,7 +280,7 @@ static bool stabilize_list_menu(Client* client)
     size_t vs_depth = get_vs_depth(vs);
     if (vs_depth >= ui.m_list_cursor.size()) return false;
     
-    int32_t list_cursor = ui.m_list_cursor.at(vs_depth);
+    intptr_t list_cursor = ui.m_list_cursor.at(vs_depth);
     
     if (list_cursor == -1) return false;
     
@@ -250,12 +306,12 @@ static bool stabilize_list_menu(Client* client)
     }
     if (id == &df::viewscreen_reportlistst::_identity)
     {
-        #if 0
+        size_t cursor_store = static_cast<size_t>(list_cursor);
         df::viewscreen_reportlistst* vs_r = static_cast<df::viewscreen_reportlistst*>(vs);
-        int32_t index = 0;
-        for (df::report* report : df::global::world->status.reports)
+        size_t maxl = std::max(vs_r->spoils_reports.size(), std::max(vs_r->units.size(), vs_r->mission_reports.size()));
+        for (size_t index = 0; index < maxl; ++index)
         {
-            if (report->id == list_cursor)
+            if (hash_reportscreen_index(vs_r, index) == cursor_store)
             {
                 vs_r->cursor = index;
                 // refresh
@@ -263,9 +319,7 @@ static bool stabilize_list_menu(Client* client)
                 vs->feed_key(STANDARDSCROLL_DOWN);
                 return false;
             }
-            index++;
         }
-        #endif
         
         goto fail;
     }
@@ -681,36 +735,7 @@ void capture_post_state(Client* client)
     df::viewscreen* _vs = &df::global::gview->view;
     while (_vs)
     {
-        if (!Screen::isDismissed(_vs))
-        {
-            df::virtual_identity* _id = virtual_identity::get(_vs);
-            if (_id == &df::viewscreen_announcelistst::_identity)
-            {
-                df::viewscreen_announcelistst* vs_a = static_cast<df::viewscreen_announcelistst*>(vs);
-                if (df::report* report = vector_get(vs_a->reports, vs_a->sel_idx))
-                {
-                    int32_t vs_depth = get_vs_depth(_vs);
-                    ui.m_list_cursor.resize(vs_depth + 1);
-                    ui.m_list_cursor[vs_depth] = report->id;
-                }
-            }
-            if (_id == &df::viewscreen_reportlistst::_identity)
-            {
-                df::viewscreen_reportlistst* vs_r = static_cast<df::viewscreen_reportlistst*>(vs);
-                if (df::report* report = vector_get(df::global::world->status.reports, vs_r->cursor))
-                {
-                    int32_t vs_depth = get_vs_depth(_vs);
-                    ui.m_list_cursor.resize(vs_depth + 1);
-                    ui.m_list_cursor[vs_depth] = report->id;
-                }
-            }
-            if (_id == &df::viewscreen_civlistst::_identity)
-            {
-                df::viewscreen_civlistst* vs_c = static_cast<df::viewscreen_civlistst*>(vs);
-                ui.m_civ_x = vs_c->map_x;
-                ui.m_civ_y = vs_c->map_y;
-            }
-        }
+        capture_stabilize_list_menu(client, _vs);
         
         _vs = _vs->child;
     }
