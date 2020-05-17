@@ -696,6 +696,10 @@ menu_id get_current_menu_id()
             {
                 focus += "/name";
             }
+            else
+            {
+                focus += "/" + enum_item_key(vs_military->equip.edit_mode);
+            }
         }
         else if (vs_military->page == df::viewscreen_layer_militaryst::Ammunition)
         {
