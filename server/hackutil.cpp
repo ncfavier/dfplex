@@ -7,19 +7,18 @@
 #include "hackutil.hpp"
 #include "dfplex.hpp"
 
-#include "modules/Gui.h"
-#include "modules/Screen.h"
 #include "df/building_trapst.h"
 #include "df/global_objects.h"
 #include "df/graphic.h"
 #include "df/historical_figure.h"
 #include "df/invasion_info.h"
+#include "df/item.h"
+#include "df/mission_report.h"
 #include "df/squad.h"
 #include "df/ui_sidebar_menus.h"
 #include "df/ui_sidebar_mode.h"
 #include "df/ui.h"
 #include "df/unit.h"
-#include "df/item.h"
 #include "df/viewscreen_choose_start_sitest.h"
 #include "df/viewscreen_civlistst.h"
 #include "df/viewscreen_createquotast.h"
@@ -36,12 +35,15 @@
 #include "df/viewscreen_new_regionst.h"
 #include "df/viewscreen_optionst.h"
 #include "df/viewscreen_overallstatusst.h"
+#include "df/viewscreen_reportlistst.h"
 #include "df/viewscreen_setupadventurest.h"
 #include "df/viewscreen_textviewerst.h"
 #include "df/viewscreen_titlest.h"
 #include "df/viewscreen_unitst.h"
 #include "df/viewscreen.h"
 #include "df/world.h"
+#include "modules/Gui.h"
+#include "modules/Screen.h"
 
 using namespace df;
 using namespace df::global;
@@ -720,8 +722,89 @@ menu_id get_current_menu_id()
             }
         }
     }
+    else if (id == &df::viewscreen_reportlistst::_identity)
+    {
+        df::viewscreen_reportlistst* vs_r = static_cast<df::viewscreen_reportlistst*>(vs);
+        if (vs_r->mission_report)
+        {
+            focus += "/mission";
+            const std::string& title = vs_r->mission_report->title;
+            if (title.length())
+            {
+                focus += "(title=" + title + ")";
+            }
+        }
+        else if (vs_r->spoils_report_title)
+        {
+            focus += "/spoils(title=" + *vs_r->spoils_report_title + ")";
+        }
+    }
     
     return focus;
+}
+
+bool viewing_mission_report()
+{
+    df::viewscreen* vs;
+    virtual_identity* id;
+    UPDATE_VS(vs, id);
+    
+    if (id == &df::viewscreen_reportlistst::_identity)
+    {
+        df::viewscreen_reportlistst* vs_r = static_cast<df::viewscreen_reportlistst*>(vs);
+        if (vs_r->mission_report)
+        {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+bool mission_report_paused()
+{
+    df::viewscreen* vs;
+    virtual_identity* id;
+    UPDATE_VS(vs, id);
+    
+    if (id == &df::viewscreen_reportlistst::_identity)
+    {
+        df::viewscreen_reportlistst* vs_r = static_cast<df::viewscreen_reportlistst*>(vs);
+        if (vs_r->mission_report)
+        {
+            return vs_r->mission_report_paused;
+        }
+    }
+    
+    return false;
+}
+
+bool mission_report_complete()
+{
+    df::viewscreen* vs;
+    virtual_identity* id;
+    UPDATE_VS(vs, id);
+    
+    if (id == &df::viewscreen_reportlistst::_identity)
+    {
+        df::viewscreen_reportlistst* vs_r = static_cast<df::viewscreen_reportlistst*>(vs);
+        if (vs_r->mission_report)
+        {
+            // not sure what "finished" means here... trying a few interpretations because lazy
+            
+            if (vs_r->mission_text_finished == 1 && vs_r->mission_path_finished == 1)
+            {
+                return true;
+            }
+            
+            if (vs_r->mission_text_finished == vs_r->mission_text_progress && vs_r->mission_path_finished == vs_r->mission_path_progress)
+            {
+                return true;
+            }
+        }
+    }
+    
+    return false;
 }
 
 int32_t renaming_squad_id()

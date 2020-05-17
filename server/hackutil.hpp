@@ -222,3 +222,7 @@ inline bool following_item_or_unit()
 {
     return df::global::ui->follow_item != -1 || df::global::ui->follow_unit != -1;
 }
+
+bool viewing_mission_report();
+bool mission_report_paused();
+bool mission_report_complete();

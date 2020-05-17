@@ -177,6 +177,28 @@ static void restore_post_state(Client* client)
     }
     
     restore_squads_state_post(client);
+    
+    // mission report animation
+    if (viewing_mission_report())
+    {
+        df::viewscreen* vs;
+        virtual_identity* id;
+        UPDATE_VS(vs, id);
+        
+        if (id == &df::viewscreen_reportlistst::_identity)
+        {
+            df::viewscreen_reportlistst* vs_r = static_cast<df::viewscreen_reportlistst*>(vs);
+            
+            // advance animation n ticks
+            for (size_t i = 0; i < ui.m_mission_report_ticks; ++i)
+            {
+                vs_r->logic();
+            }
+            
+            // pause state?
+            vs_r->mission_report_paused = ui.m_mission_report_paused;
+        }
+    }
 }
 
 // helper function for restore_state.
@@ -806,6 +828,23 @@ void capture_post_state(Client* client)
     )
     {
         ui.m_burrowcoord_share = true;
+    }
+    
+    // mission report animation
+    if (viewing_mission_report())
+    {
+        ui.m_mission_report_paused = mission_report_paused();
+        
+        // stop after finished or after 5 minutes.
+        if (!ui.m_mission_report_paused && !mission_report_complete() && ui.m_mission_report_ticks < 60 * 300)
+        {
+            ui.m_mission_report_ticks++;
+        }
+    }
+    else
+    {
+        ui.m_mission_report_ticks = 0;
+        ui.m_mission_report_paused = false;
     }
 
     // decide whether this ui position requires a pause.

@@ -190,9 +190,14 @@ struct UIState
     int32_t m_follow_unit_id = -1;
     int32_t m_follow_item_id = -1;
     
+    size_t m_mission_report_ticks = 0;
+    bool m_mission_report_paused = false;
+    
     // resets most UI state
     void reset()
     {
+        m_mission_report_paused = false;
+        m_mission_report_ticks = 0;
         m_follow_unit_id = -1;
         m_follow_item_id = -1;
         m_restore_keys.clear();
