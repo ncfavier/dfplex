@@ -576,7 +576,7 @@ static bool update_multiplexing(Client* client)
         case RestoreResult::FAIL:
             UPDATE_VS(vs, id);
             _out->color(COLOR_RED);
-            *_out << "Error for user " << current_user_state_index << " on screen " << get_current_menu_id() << std::endl;
+            *_out << "Exception for user " << current_user_state_index << " on screen " << get_current_menu_id() << std::endl;
             *_out << restore_state_error << endl;
             _out->color(COLOR_RESET);
             break;

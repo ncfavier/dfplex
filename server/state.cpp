@@ -299,20 +299,21 @@ bool apply_restore_key(Client* client)
     virtual_identity* id;
     UPDATE_VS(vs, id);
     (void)id;
-    
-    // pre-apply callbacks
-    for (restore_state_cb_t& cb : rkey.m_callbacks)
-    {
-        if (int rc = cb(client))
-        {
-            restore_state_error = "Callback failed with error code " + std::to_string(rc);
-            return true;
-        }
-    }
+    int callback_error_code = 0;
     
     // feed requires a non-const pointer to the set, so we copy it here.
     // OPTIMIZE: is this really necessary?
     std::set<df::interface_key> keys = rkey.m_interface_keys;
+    
+    // pre-apply callbacks
+    for (restore_state_cb_t& cb : rkey.m_callbacks)
+    {
+        callback_error_code = cb(client);
+        if (callback_error_code)
+        {
+            goto callback_error;
+        }
+    }
     
     if (!keys.empty())
     {
@@ -323,12 +324,26 @@ bool apply_restore_key(Client* client)
     // post-apply callbacks
     for (restore_state_cb_t& cb : rkey.m_callbacks_post)
     {
-        if (int rc = cb(client))
+        callback_error_code = cb(client);
+        if (callback_error_code)
         {
-            restore_state_error = "Callback failed with error code " + std::to_string(rc);
-            return true;
+            goto callback_error;
         }
     }
+    
+    if (callback_error_code)
+    {
+    callback_error:
+        restore_state_error = "Callback (post) failed with error code " + std::to_string(callback_error_code);
+        
+        // erase past after this key.
+        ui.m_restore_keys.erase(
+            ui.m_restore_keys.begin() + ui.m_restore_progress + 1,
+            ui.m_restore_keys.end()
+        );
+        
+        return true;
+    }    
     
     // change the restorekey's observed menu.
     menu_id menu_id = get_current_menu_id();
@@ -580,11 +595,13 @@ void capture_post_state(Client* client)
     ui.m_show_misc = df::global::ui_sidebar_menus->show_misc;
     if (id == &df::viewscreen_dwarfmodest::_identity)
     {
-        ui.m_view_unit = -1;
-        ui.m_view_unit_labor_scroll = 0;
-        ui.m_view_unit_labor_submenu = -1;
-        if (id == &df::viewscreen_dwarfmodest::_identity
-            && df::global::ui->main.mode == df::ui_sidebar_mode::ViewUnits)
+        if (df::global::ui->main.mode == df::ui_sidebar_mode::Default)
+        {
+            ui.m_view_unit = -1;
+            ui.m_view_unit_labor_scroll = 0;
+            ui.m_view_unit_labor_submenu = -1;
+        }
+        if (df::global::ui->main.mode == df::ui_sidebar_mode::ViewUnits)
         {
             if (df::global::ui_selected_unit)
             {

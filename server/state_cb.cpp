@@ -272,6 +272,7 @@ int restore_unit_view_state(Client* client)
             // return to the stored cursor position.
             restore_cursor(client);
             Gui::refreshSidebar();
+            ui.m_view_unit = -1;
             return 1;
         }
         else
@@ -302,5 +303,5 @@ int restore_unit_view_state(Client* client)
             return 0;
         }
     }
-    return 1;
+    return 0;
 }

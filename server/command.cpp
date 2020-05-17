@@ -128,10 +128,10 @@ if (contains(keys, UNITJOB_ZOOM_CRE)) \
     ui.m_restore_keys.clear(); \
     ui.m_restore_keys.emplace_back(); \
     ui.m_restore_keys.back().m_interface_keys = { D_VIEWUNIT }; \
-    ui.m_restore_keys.back().m_callbacks_post.emplace_back(restore_unit_view_state); \
     ui.m_viewcycle = 0; \
-    callbacks.emplace_back(suppress_sidebar_refresh); \
-    callbacks_post.emplace_back(restore_cursor); \
+    ui.m_restore_keys.back().m_callbacks_post.emplace_back(restore_cursor); \
+    ui.m_restore_keys.back().m_callbacks.emplace_back(suppress_sidebar_refresh); \
+    ui.m_restore_keys.back().m_callbacks_post.emplace_back(restore_unit_view_state); \
     blockcatch = true; \
 } \
 
@@ -322,11 +322,11 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
             //! RATIONALE these all need consistent cursor position
             if (contains(keys, D_VIEWUNIT))
             {
+                callbacks_post.emplace_back(restore_cursor);
                 callbacks_post.emplace_back(restore_unit_view_state);
                 ui.m_viewcycle = 0;
                 
                 callbacks.emplace_back(suppress_sidebar_refresh);
-                callbacks_post.emplace_back(restore_cursor);
                 
                 // stop rewinds due to the unit view changing here.
                 blockcatch = true;
