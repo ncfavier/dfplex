@@ -38,6 +38,6 @@ DFPlex requires two ports to be available. They are both displayed in the dfplex
 
 **DFPlex is not secure**. If you wish to play with people you do not trust, please take your own security precautions, such as running Dwarf Fortress within an isolated container. No efforts were taken by the authors of DFPlex to prevent clients from accessing the host filesystem.
 
-#### Contributing ####
+#### Contribution ####
 
-The [code overview](OVERVIEW.md) explains the overall gist of how DFPLex works and points out some particularly important functions to look at.
+To learn how the code is structured and how the project works, please read [the overview](OVERVIEW.md).

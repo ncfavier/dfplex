@@ -2,6 +2,17 @@ get_directory_property(isPlugin PARENT_DIRECTORY)
 
 project(dfplex)
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+	if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.9)
+		option(DFPLEX_IXW "Use IXWebSocket instead of websocketpp" ON)
+	else()
+	# GCC 4.9 is not compatible with IXWebSockets
+		option(DFPLEX_IXW "Use IXWebSocket instead of websocketpp" OFF)
+	endif()
+else()
+	option(DFPLEX_IXW "Use IXWebSocket instead of websocketpp" ON)
+endif()
+
 if (NOT isPlugin)
 	cmake_minimum_required(VERSION 2.8)
 	set(DFHACK_VER 0.34.11)
@@ -29,8 +40,10 @@ if(UNIX)
 	add_definitions(
 		-std=c++11
 		-DLINUX_BUILD
-		-D_WEBSOCKETPP_CPP11_STL_
 	)
+	if (NOT DFPLEX_IXW)
+		add_definitions(-D_WEBSOCKETPP_CPP11_STL_)
+	endif()
 	list(APPEND PROJECT_LIBS pthread)
 	set(DF_ROOT ${CMAKE_SOURCE_DIR}/df_linux)
 # windows
@@ -40,33 +53,48 @@ else(UNIX)
 	endif()
 	set(WFDIR ${CMAKE_CURRENT_BINARY_DIR})
 	add_definitions(
-		-D_WEBSOCKETPP_CPP11_FUNCTIONAL_
-		-D_WEBSOCKETPP_CPP11_SYSTEM_ERROR_
-		-D_WEBSOCKETPP_CPP11_RANDOM_DEVICE_
-		-D_WEBSOCKETPP_CPP11_MEMORY_
 		-DNOMINMAX
 		-DWIN32_LEAN_AND_MEAN
 	)
-
-	set(BOOST_ROOT ${WFDIR}/boost)
-	link_directories(${BOOST_ROOT}/lib) # Boost doesn't find everything
+	if (NOT DFPLEX_IXW)
+		add_definitions(
+			-D_WEBSOCKETPP_CPP11_FUNCTIONAL_
+			-D_WEBSOCKETPP_CPP11_SYSTEM_ERROR_
+			-D_WEBSOCKETPP_CPP11_RANDOM_DEVICE_
+			-D_WEBSOCKETPP_CPP11_MEMORY_
+		)
+		set(BOOST_ROOT ${WFDIR}/boost)
+		link_directories(${BOOST_ROOT}/lib) # Boost doesn't find everything
+	endif()
 endif(UNIX)
 
-# Boost/Asio
-set(Boost_FIND_REQUIRED TRUE)
-set(Boost_USE_STATIC_LIBS OFF)
-set(Boost_USE_SHARED_LIBS ON)
-set(Boost_USE_MULTITHREADED ON)
-set(WS_BOOST_LIBS system)
-find_package(Boost 1.49.0 REQUIRED COMPONENTS "${WS_BOOST_LIBS}")
+if (NOT DFPLEX_IXW)
+	# Boost/Asio
+	set(Boost_FIND_REQUIRED TRUE)
+	set(Boost_USE_STATIC_LIBS OFF)
+	set(Boost_USE_SHARED_LIBS ON)
+	set(Boost_USE_MULTITHREADED ON)
+	set(WS_BOOST_LIBS system)
+	find_package(Boost 1.38.0 REQUIRED COMPONENTS "${WS_BOOST_LIBS}")
 
-if(Boost_FOUND)
-	include_directories(${Boost_INCLUDE_DIRS})
-	list(APPEND PROJECT_LIBS ${Boost_LIBRARIES})
+	if(Boost_FOUND)
+		include_directories(${Boost_INCLUDE_DIRS})
+		list(APPEND PROJECT_LIBS ${Boost_LIBRARIES})
+	endif()
+
+	# websocketpp
+	include_directories(websocketpp)
+	
+	add_definitions(-DDFPLEX_WEBSOCKETPP)
+else()
+	# ixwebsocket
+	include_directories(IXWebSocket)
+	add_subdirectory(IXWebSocket)
+	list(APPEND PROJECT_LIBS
+		ixwebsocket
+	)
+	add_definitions(-DDFPLEX_IXW)
 endif()
-
-# websocketpp
-include_directories(websocketpp)
 
 # cpp-httplib
 include_directories(cpp-httplib)

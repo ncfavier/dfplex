@@ -973,7 +973,18 @@ DFhackCExport command_result plugin_onupdate(color_ostream &out)
     
     if (!enabled) return CR_OK;
     
-    dfplex_update();
+    try
+    {
+        dfplex_update();
+    }
+    catch(std::exception& e)
+    {
+        // crash message reporting.
+        DFPlex::log_message(
+            "An exception occurred in dfplex_update(): " + std::string(e.what())
+        );
+        return CR_FAILURE;
+    }
     return CR_OK;
 }
 

@@ -943,7 +943,7 @@ void apply_command(std::set<df::interface_key>& keys, Client* cl, bool raw)
             }
         }
 
-
+        
         // one reason we would add the key to the record is if
         // we have gone down a menu.
         if (menu_id != menu_id_prev || menu_depth != menu_depth_prev)
