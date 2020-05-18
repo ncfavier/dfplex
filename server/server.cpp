@@ -336,17 +336,33 @@ Client* get_client(conn_hdl_t connection)
     return get_client(iter->second.get());
 }
 
+std::string get_subprotocol(WebSocketPtr webSocket)
+{
+    const std::vector<std::string>& protocols = webSocket->getSubProtocols();
+    if (protocols.empty()) return "";
+    return protocols.front();
+}
+
 void on_open_ix(const ix::WebSocketMessagePtr& msg, conn_hdl_t connection, WebSocketPtr webSocket)
 {
     tthread::lock_guard<decltype(dfplex_mutex)> guard(dfplex_mutex);
 
-    // TODO: validate connection (see on_open_ws)
+    if (get_subprotocol(webSocket) == WF_INVALID) {
+        webSocket->close(4000, "Invalid version, expected '" WF_VERSION "'.");
+        return;
+    }
+
+    if (clients.size() >= MAX_CLIENTS && MAX_CLIENTS != 0) {
+        webSocket->close(4001, "Server is full.");
+        return;
+    }
     
-    std::string addr = webSocket->getUrl(); // FIXME: is this actually the endpoint address?
+    // TODO: get address from ixwebsockets.
+    std::string addr = "???";
     
     if (std::find(g_ban_list.begin(), g_ban_list.end(), addr) != g_ban_list.end())
     {
-        // TODO: close with "Banned" message
+        webSocket->close(4003, "Banned.");
         return;
     }
     
