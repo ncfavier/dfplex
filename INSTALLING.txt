@@ -10,9 +10,9 @@ from source, see the build instructions in the README.
 
 Run dfhack. In the DFHack Console, you should see a line that says:
 
-	[WEBFORT] [2014-11-10 06:11:06] [application] Web Fortress started on port 1234
+	[DFPLEX] [2014-11-10 06:11:06] [application] DFPlex started on port 1234
 
-If you see something like that, then Web Fortress has been properly installed. However,
+If you see something like that, then DFPlex has been properly installed. However,
 the port mentioned in the console here is not the one to connect to.
 
 3. Port Forwarding
