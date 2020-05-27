@@ -172,7 +172,7 @@ sed -i 's/BIRTH_CITIZEN:A_D:D_D:P:R/BIRTH_CITIZEN:A_D:D_D/g' $dfdir/data/init/an
 sed -i 's/MOOD_BUILDING_CLAIMED:A_D:D_D:P:R/MOOD_BUILDING_CLAIMED:A_D:D_D/g' $dfdir/data/init/announcements.txt
 sed -i 's/ARTIFACT_BEGUN:A_D:D_D:P:R/ARTIFACT_BEGUN:A_D:D_D/g' $dfdir/data/init/announcements.txt
 
-dfplexinit="devel/dfhack.init-web"
+dfplexinit="devel/dfhack.init"
 if [ -f $dfplexinit ]
 then
     echo "copying in dfplex's dfhack.init"
