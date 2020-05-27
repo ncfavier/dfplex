@@ -433,7 +433,7 @@ void wsthreadmain(void *i_raw_out)
 
     ix::initNetSystem();
     
-    ix::WebSocketServer server(PORT);
+    ix::WebSocketServer server(PORT, "0.0.0.0");
     
     server.setOnConnectionCallback(
     [&server](std::shared_ptr<WebSocket> webSocket,
