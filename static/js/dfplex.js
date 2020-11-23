@@ -140,7 +140,7 @@ function setStatus(text, color, onclick) {
 
 function connect() {
 	setStatus('Connecting...', 'orange');
-	websocket = new WebSocket(wsUri, [protocol, 'DFPlex-invalid']);
+	websocket = new WebSocket(wsUri);
 	websocket.binaryType = 'arraybuffer';
 	websocket.onopen  = onOpen;
 	websocket.onclose = onClose;
