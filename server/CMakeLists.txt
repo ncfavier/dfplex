@@ -4,13 +4,13 @@ project(dfplex)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 	if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.9)
-		option(DFPLEX_IXW "Use IXWebSocket instead of websocketpp" ON)
+		option(DFPLEX_IXW "Use IXWebSocket instead of websocketpp" OFF)
 	else()
 		# GCC 4.9 is not compatible with IXWebSockets
 		option(DFPLEX_IXW "Use IXWebSocket instead of websocketpp" OFF)
 	endif()
 else()
-	option(DFPLEX_IXW "Use IXWebSocket instead of websocketpp" ON)
+	option(DFPLEX_IXW "Use IXWebSocket instead of websocketpp" OFF)
 endif()
 
 if (NOT isPlugin)
