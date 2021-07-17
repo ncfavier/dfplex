@@ -48,12 +48,8 @@ if(UNIX)
 	set(DF_ROOT ${CMAKE_SOURCE_DIR}/df_linux)
 # windows
 else(UNIX)
-	if(NOT MSVC10)
-		message(FATAL_ERROR "Visual Studio 2010 required.")
-	endif()
 	set(WFDIR ${CMAKE_CURRENT_BINARY_DIR})
 	add_definitions(
-		-DNOMINMAX
 		-DWIN32_LEAN_AND_MEAN
 	)
 	if (NOT DFPLEX_IXW)
