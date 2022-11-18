@@ -3,7 +3,7 @@
  * Copyright (c) 2014 mifki, ISC license.
  * Copyright (c) 2020 white-rabbit, ISC license
 */
- 
+
 #include "hackutil.hpp"
 #include "dfplex.hpp"
 
@@ -79,7 +79,7 @@ bool is_realtime_dwarf_menu()
 static void apply_return_for(df::viewscreen* vs, bool force)
 {
     virtual_identity* id = df::virtual_identity::get(vs);
-    
+
     // some screens cannot be escaped from without forcing.
     if (!force)
     {
@@ -88,7 +88,7 @@ static void apply_return_for(df::viewscreen* vs, bool force)
             return;
         }
     }
-    
+
     // some screens require a bit of work to escape from.
     if (id == &df::viewscreen_layer_squad_schedulest::_identity)
     {
@@ -122,7 +122,7 @@ static void apply_return_for(df::viewscreen* vs, bool force)
     }
     vs->feed_key(df::interface_key::LEAVESCREEN);
 }
- 
+
 // returns false on error.
 bool return_to_root()
 {
@@ -130,14 +130,14 @@ bool return_to_root()
     virtual_identity* id;
     UPDATE_VS(vs, id);
     if (is_at_root()) return true;
-    
+
     // can't leave the meeting-topic screen.
     // (it would crash the game -- why..?)
     if (id == &df::viewscreen_meetingst::_identity)
     {
         return false;
     }
-    
+
     Gui::resetDwarfmodeView();
     for (size_t i = 0; i < 300; ++i)
     {
@@ -152,14 +152,14 @@ bool return_to_root()
             remove_screen(vs);
         }
     }
-    
+
     return is_at_root();
 }
 
 bool defer_return_to_root()
 {
     if (is_at_root()) return true;
-    
+
     for (
         df::viewscreen* vs = DFHack::Gui::getCurViewscreen(true);
         vs && vs->parent && vs->parent->parent; // stop at dwarfmode screen
@@ -173,17 +173,17 @@ bool defer_return_to_root()
             return false;
         }
     }
-    
+
     Gui::resetDwarfmodeView();
-    
+
     return true;
 }
 
 size_t get_vs_depth(df::viewscreen* vs)
 {
-    size_t i = 0;    
+    size_t i = 0;
     size_t K_MAX_DEPTH = 1024;
-    
+
     while (vs && i < K_MAX_DEPTH)
     {
         vs = vs->parent;
@@ -192,10 +192,10 @@ size_t get_vs_depth(df::viewscreen* vs)
             ++i;
         }
     }
-    
+
     return i;
 }
- 
+
 bool is_text_tile(int x, int y, bool &is_map, bool& is_minimap)
 {
     df::viewscreen* ws = Gui::getCurViewscreen(true);
@@ -206,7 +206,7 @@ bool is_text_tile(int x, int y, bool &is_map, bool& is_minimap)
 
     is_map = false;
     is_minimap = false;
-    
+
     // screen border
     if (is_dwarf_mode())
     {
@@ -253,7 +253,7 @@ bool is_text_tile(int x, int y, bool &is_map, bool& is_minimap)
 
         return false;
     }
-    
+
     if (IS_SCREEN(viewscreen_civlistst))
     {
         if (x < w - 55)
@@ -261,7 +261,7 @@ bool is_text_tile(int x, int y, bool &is_map, bool& is_minimap)
             is_minimap = true;
             return false;
         }
-        
+
         return true;
     }
 
@@ -350,7 +350,7 @@ void remove_screen(df::viewscreen* v)
     {
         v->child->parent = v->parent;
     }
-    
+
     delete v;
 }
 
@@ -438,7 +438,7 @@ std::vector<std::string> word_wrap_lines(const std::string& str, uint16_t width)
             }
         }
     }
-    
+
     return out;
 }
 
@@ -448,36 +448,36 @@ menu_id get_current_menu_id()
     df::viewscreen* vs;
     virtual_identity* id;
     UPDATE_VS(vs, id);
-    
+
     std::string focus = Gui::getFocusString(vs);
-    
+
     // game adds /Floor, /None, etc; we don't want that.
     if (focus.rfind("dwarfmode/LookAround", 0) == 0)
     {
         focus = "dwarfmode/LookAround";
     }
-    
+
     if (focus.rfind("dwarfmode/ViewUnits", 0) == 0)
     {
         focus = "dwarfmode/ViewUnits";
     }
-    
+
     if (focus.rfind("dwarfmode/BuildingItems", 0) == 0)
     {
         focus = "dwarfmode/BuildingItems";
     }
-    
+
     if (focus.rfind("unitlist", 0) == 0)
     {
         focus = "unitlist";
     }
-    
+
     // remove /On, /Off
     if (startsWith(focus, "layer_stockpile"))
     {
         focus = replace_all(focus, "/On", "");
         focus = replace_all(focus, "/Off", "");
-        
+
         // FIXME: just replace the focusstring logic completely for this screen. This is dumb. :/
         focus = replace_all(focus, "Animals/Animals", "Animals");
         focus = replace_all(focus, "Corpses/Corpses", "Corpses");
@@ -485,16 +485,16 @@ menu_id get_current_menu_id()
         focus = replace_all(focus, "Leather/Leather", "Leather");
         focus = replace_all(focus, "Wood/Wood", "Wood");
     }
-    
+
     // replace /Job suffix with /Empty
     if (startsWith(focus, "dwarfmode/QueryBuilding"))
     {
         focus = replace_all(focus, "/Job", "/Empty");
     }
-    
+
     const df::enums::ui_sidebar_mode::ui_sidebar_mode LOCATIONS
     = static_cast<df::enums::ui_sidebar_mode::ui_sidebar_mode>((uint32_t)df::enums::ui_sidebar_mode::ArenaTrees + 1);
-    
+
     // append some submenu IDs
     if (id == &df::viewscreen_dwarfmodest::_identity)
     {
@@ -535,7 +535,7 @@ menu_id get_current_menu_id()
                         + std::to_string(sidebar.building.category_id);
                 }
             }
-        } 
+        }
         else if (df::global::ui->main.mode == LOCATIONS)
         {
             df::ui_sidebar_menus& sidebar = *df::global::ui_sidebar_menus;
@@ -593,7 +593,7 @@ menu_id get_current_menu_id()
         else if (df::global::ui->main.mode == df::enums::ui_sidebar_mode::Squads)
         {
             auto& squads = df::global::ui->squads;
-            
+
             // if selecting inside squad, append to menu.
             if (squads.sel_indiv_squad >= 0
                 && squads.sel_indiv_squad < static_cast<int32_t>(squads.list.size()))
@@ -739,7 +739,7 @@ menu_id get_current_menu_id()
             focus += "/spoils(title=" + *vs_r->spoils_report_title + ")";
         }
     }
-    
+
     return focus;
 }
 
@@ -748,7 +748,7 @@ bool viewing_mission_report()
     df::viewscreen* vs;
     virtual_identity* id;
     UPDATE_VS(vs, id);
-    
+
     if (id == &df::viewscreen_reportlistst::_identity)
     {
         df::viewscreen_reportlistst* vs_r = static_cast<df::viewscreen_reportlistst*>(vs);
@@ -757,7 +757,7 @@ bool viewing_mission_report()
             return true;
         }
     }
-    
+
     return false;
 }
 
@@ -766,7 +766,7 @@ bool mission_report_paused()
     df::viewscreen* vs;
     virtual_identity* id;
     UPDATE_VS(vs, id);
-    
+
     if (id == &df::viewscreen_reportlistst::_identity)
     {
         df::viewscreen_reportlistst* vs_r = static_cast<df::viewscreen_reportlistst*>(vs);
@@ -775,7 +775,7 @@ bool mission_report_paused()
             return vs_r->mission_report_paused;
         }
     }
-    
+
     return false;
 }
 
@@ -784,26 +784,26 @@ bool mission_report_complete()
     df::viewscreen* vs;
     virtual_identity* id;
     UPDATE_VS(vs, id);
-    
+
     if (id == &df::viewscreen_reportlistst::_identity)
     {
         df::viewscreen_reportlistst* vs_r = static_cast<df::viewscreen_reportlistst*>(vs);
         if (vs_r->mission_report)
         {
             // not sure what "finished" means here... trying a few interpretations because lazy
-            
+
             if (vs_r->mission_text_finished == 1 && vs_r->mission_path_finished == 1)
             {
                 return true;
             }
-            
+
             if (vs_r->mission_text_finished == vs_r->mission_text_progress && vs_r->mission_path_finished == vs_r->mission_path_progress)
             {
                 return true;
             }
         }
     }
-    
+
     return false;
 }
 
@@ -833,34 +833,34 @@ void center_view_on_coord(const Coord& _c)
     auto dims = DFHack::Gui::getDwarfmodeViewDims();
     c.x -= (dims.map_x2 - dims.map_x1) / 2;
     c.y -= (dims.y2 - dims.y1) / 2;
-    
+
     int32_t w = df::global::world->map.x_count;
     int32_t h = df::global::world->map.y_count;
-    
+
     // bounds clamping
     if (w > 0)
     {
         c.x = std::min<int32_t>(c.x, w - (dims.map_x2 - dims.map_x1) - 1);
         c.y = std::min<int32_t>(c.y, h - (dims.y2 - dims.y1) - 1);
     }
-    
+
     if (c.x < 0) c.x = 0;
     if (c.y < 0) c.y = 0;
-    
+
     Gui::setViewCoords(c.x, c.y, c.z);
 }
 
 bool menu_id_matches(const menu_id& a, const menu_id& b)
 {
     if (a == K_NOCHECK) return true;
-    
+
     if (a == b) return true;
-    
+
     // negation
     if (startsWith(a, "^"))
     {
         return a.substr(1) != b;
     }
-    
+
     return false;
 }

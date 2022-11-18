@@ -55,7 +55,7 @@ struct KeyEvent {
             default: return false;
         }
     }
-    
+
     KeyEvent()=default;
     KeyEvent(const KeyEvent& other)
     {

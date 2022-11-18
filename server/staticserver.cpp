@@ -26,12 +26,12 @@ void init_static(void*)
 
     Server svr;
     //Server server(STATICPORT, STATICDIR.c_str());
-    
+
     auto ret = svr.set_mount_point("/", STATICDIR.c_str());
     svr.Get("/", [](const Request& req, Response& res) {
         res.set_redirect("dfplex.html");
     });
-    
+
     svr.Get("/config-srv.js", [](const Request& req, Response& res) {
         std::stringstream ss;
         ss << "// This file is dynamically generated.\n";
@@ -39,7 +39,7 @@ void init_static(void*)
         ss << "config.protocol = '" << WF_VERSION << "';\n";
         res.set_content(ss.str().c_str(), "application/javascript");
     });
-    
+
     if (!ret)
     {
         Core::printerr("[DFPLEX] Failed to serve static site files from \"%s\"\n", STATICDIR.c_str());

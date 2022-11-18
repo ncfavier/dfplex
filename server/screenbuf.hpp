@@ -3,9 +3,9 @@
  * Copyright (c) 2014 mifki, ISC license.
  * Copyright (c) 2020 white-rabbit, ISC license
  */
- 
-#pragma once 
- 
+
+#pragma once
+
 #include "Client.hpp"
 
 extern screenbuf_t screenbuf;

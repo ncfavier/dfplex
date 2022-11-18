@@ -13,27 +13,27 @@
 bool ChatMessage::is_expired(Client* client) const
 {
     if (!m_time_remaining.get()) return true;
-    
+
     auto iter = m_time_remaining->find(client->id);
     if (iter == m_time_remaining->end()) return true;
-    
+
     return iter->second <= 0;
 }
 
 bool ChatMessage::is_flash(Client* client) const
 {
     if (!m_time_remaining.get()) return false;
-    
+
     auto iter = m_time_remaining->find(client->id);
     if (iter == m_time_remaining->end()) return false;
-    
+
     return iter->second >= MESSAGE_TIME - MESSAGE_FLASH_TIME || iter->second < MESSAGE_FLASH_TIME;
 }
 
 void ChatMessage::expire(Client* client)
 {
     if (!m_time_remaining) return;
-    
+
     auto iter = m_time_remaining->find(client->id);
     if (iter != m_time_remaining->end())
     {
@@ -47,18 +47,18 @@ void ChatLog::push_message(ChatMessage&& message)
     message.m_time_remaining.reset(
         new std::map<std::shared_ptr<ClientIdentity>, int32_t>()
     );
-    
+
     for (size_t i = 0; i < get_client_count(); ++i)
     {
         (*message.m_time_remaining)[get_client(i)->id] =
             MESSAGE_TIME;
     }
-    
+
     // add message to log.
     m_messages.emplace_back(
         std::move(message)
     );
-    
+
     // erase messages in big chunks when max size reached.
     while (m_messages.size() >= MAX_MESSAGE_COUNT)
     {
@@ -84,7 +84,7 @@ void ChatLog::tick(Client* client)
             }
         }
     }
-    
+
     // update m_active_message_index, cleaning up maps.
     while (
         m_active_message_index < m_messages.size()

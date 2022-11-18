@@ -96,13 +96,13 @@ void remove_client(Client* cl)
 Client* add_client()
 {
     Client* cl = *clients.emplace(new Client()).first;
-    
+
     DFPlex::log_message("A new client has joined.");
-    
+
     // assign identity
     uint64_t id = 1;
     cl->id->long_id = id++;
-    
+
     // clear screen
     memset(cl->sc, 0, sizeof(cl->sc));
 
@@ -119,7 +119,7 @@ Client* add_client(client_update_cb&& cb)
 Client* get_client(int32_t n)
 {
     if (n < 0) return nullptr;
-    
+
     auto it = clients.begin();
     for (size_t i = 0; i < static_cast<size_t>(n); ++i)
     {
@@ -141,7 +141,7 @@ Client* get_client(const ClientIdentity* id)
         if ((*it)->id.get() == id) return *it;
         it++;
     }
-    
+
     // paranoia
     return nullptr;
 }
@@ -155,7 +155,7 @@ Client* get_client_by_id(client_long_id_t long_id)
         if ((*it)->id->long_id == long_id) return *it;
         it++;
     }
-    
+
     // paranoia
     return nullptr;
 }
@@ -170,7 +170,7 @@ int get_client_index(const ClientIdentity* id)
         if ((*it)->id.get() == id) return i;
         it++;
     }
-    
+
     // paranoia
     return -1;
 }
@@ -206,7 +206,7 @@ std::string status_json()
 size_t tock(Client* cl)
 {
     if (!cl) return 0;
-    
+
     unsigned char *b = buf;
     // [0] msgtype
     *(b++) = 110;
@@ -232,18 +232,18 @@ size_t tock(Client* cl)
     // [9] (length info_message.)
     uint8_t info_len = std::min<uint32_t>(0xff, cl->info_message.length() + 1);
     *(b++) = info_len;
-    
+
     // [10-M] info message.
     memcpy(b, cl->info_message.c_str(), info_len);
     b += info_len;
-    
+
     // [?] (length debug info)
     if (cl->m_debug_enabled)
     {
         uint16_t debug_info_len = std::min<uint32_t>(0xffff, cl->m_debug_info.length() + 1);
         *(b++) = debug_info_len & 0x00ff;
         *(b++) = (debug_info_len & 0xff00) >> 8;
-        
+
         // [?] info message.
         memcpy(b, cl->m_debug_info.c_str(), debug_info_len);
         b += debug_info_len;
@@ -314,7 +314,7 @@ size_t on_message(Client* cl, const unsigned char* mdata, size_t msz)
     } else {
         return tock(cl);
     }
-    
+
     return 0;
 }
 
@@ -356,25 +356,25 @@ void on_open_ix(const ix::WebSocketMessagePtr& msg, conn_hdl_t connection, WebSo
         webSocket->close(4001, "Server is full.");
         return;
     }
-    
+
     // TODO: get address from ixwebsockets.
     std::string addr = "???";
-    
+
     if (std::find(g_ban_list.begin(), g_ban_list.end(), addr) != g_ban_list.end())
     {
         webSocket->close(4003, "Banned.");
         return;
     }
-    
+
     // FIXME: parse URL for these
     std::string nick = "";
     std::string user_secret = "";
-    
+
     Client* cl = add_client();
 	cl->id->is_admin = (user_secret == SECRET);
     cl->id->addr = addr;
     cl->id->nick = nick;
-    
+
     DFPlex::log_message("  Client addr: \"" + addr + "\"");
     if (cl->id->is_admin)
     {
@@ -384,7 +384,7 @@ void on_open_ix(const ix::WebSocketMessagePtr& msg, conn_hdl_t connection, WebSo
     {
         DFPlex::log_message("  Client nick: " + nick);
     }
-    
+
     conn_map[connection] = cl->id;
 }
 
@@ -404,9 +404,9 @@ void on_close_ix(const ix::WebSocketMessagePtr& msg, conn_hdl_t connection, WebS
 void on_message_ix(const ix::WebSocketMessagePtr& msg, conn_hdl_t connection, WebSocketPtr webSocket)
 {
     tthread::lock_guard<decltype(dfplex_mutex)> guard(dfplex_mutex);
-    
+
     Client* cl = get_client(connection);
-    
+
     if (cl)
     {
         size_t response_size = on_message(
@@ -414,7 +414,7 @@ void on_message_ix(const ix::WebSocketMessagePtr& msg, conn_hdl_t connection, We
             reinterpret_cast<const uint8_t*>(msg->str.c_str()),
             msg->str.length()
         );
-        
+
         // send response
         if (response_size)
         {
@@ -432,9 +432,9 @@ void wsthreadmain(void *i_raw_out)
     std::ostream logstream(&lb);
 
     ix::initNetSystem();
-    
+
     ix::WebSocketServer server(PORT, "0.0.0.0");
-    
+
     server.setOnConnectionCallback(
     [&server](std::shared_ptr<WebSocket> webSocket,
               std::shared_ptr<ConnectionState> connectionState)
@@ -458,7 +458,7 @@ void wsthreadmain(void *i_raw_out)
             }
         );
     });
-    
+
     auto res = server.listen();
     if (!res.first)
     {
@@ -471,7 +471,7 @@ void wsthreadmain(void *i_raw_out)
 
     // Block until server.stop() is called.
     server.wait();
-    
+
     ix::uninitNetSystem();
 }
 #endif
@@ -572,13 +572,13 @@ void on_open_ws(server* s, conn_hdl hdl)
 
     auto raw_conn = s->get_con_from_hdl(hdl);
     std::string addr = raw_conn->get_raw_socket().remote_endpoint().address().to_string();
-    
+
     if (std::find(g_ban_list.begin(), g_ban_list.end(), addr) != g_ban_list.end())
     {
         s->close(hdl, 4003, "Banned.");
         return;
     }
-    
+
 	auto path = split(raw_conn->get_resource().substr(1).c_str(), '/');
     std::string nick = path[0];
 	std::string user_secret = (path.size() > 1) ? path[1] : "";
@@ -587,7 +587,7 @@ void on_open_ws(server* s, conn_hdl hdl)
 	cl->id->is_admin = (user_secret == SECRET);
     cl->id->addr = addr;
     cl->id->nick = nick;
-    
+
     DFPlex::log_message("  Client addr: \"" + addr + "\"");
     if (cl->id->is_admin)
     {
@@ -597,16 +597,16 @@ void on_open_ws(server* s, conn_hdl hdl)
     {
         DFPlex::log_message("  Client nick: " + nick);
     }
-    
+
     conn_map[hdl] = cl;
 }
 
 void on_close_ws(server* s, conn_hdl c)
 {
     tthread::lock_guard<decltype(dfplex_mutex)> guard(dfplex_mutex);
-    
+
     remove_client(get_client(c));
-    
+
     conn_map.erase(c);
 }
 
@@ -616,7 +616,7 @@ void on_message_ws(server* s, conn_hdl hdl, message_ptr msg)
     auto str = msg->get_payload();
     const unsigned char *mdata = (const unsigned char*) str.c_str();
     int msz = str.size();
-    
+
     size_t response = on_message(get_client(hdl), mdata, msz);
     if (response)
     {

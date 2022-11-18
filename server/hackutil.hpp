@@ -41,10 +41,10 @@ struct Coord
         , y(c.y)
         , z(c.z)
     { }
-    
+
     Coord& operator=(const Coord&)=default;
     Coord& operator=(Coord&&)=default;
-    
+
     // due to an unknown bug, all operator commands need to be explicitly invoked
     // (e.g. a.operator-(b);)
     operator bool() const
@@ -166,7 +166,7 @@ inline bool is_designation_mode_sub(df::ui_sidebar_mode mode)
     {
         return true;
     }
-    
+
     return false;
 }
 

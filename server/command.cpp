@@ -153,7 +153,7 @@ static void apply_key(Client* cl, df::interface_key key)
     virtual_identity* id;
     (void)id;
     UPDATE_VS(vs, id);
-    
+
     ui.m_restore_keys.emplace_back(key);
     vs->feed_key(key);
 }
@@ -188,7 +188,7 @@ static void cursornudge(Client* cl, bool restore_previous_frame_location=true)
         {
             none.m_callbacks.emplace_back(produce_restore_cb_restore_cursor());
         }
-        
+
         // go up and down to refresh the placement location (for material selection)
         RestoreKey up;
         up.m_interface_keys = { CURSOR_UP_Z };
@@ -213,10 +213,10 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
     df::viewscreen* vs;
     virtual_identity* id;
     UPDATE_VS(vs, id);
-    
+
     menu_id mid = get_current_menu_id();
     std::string fs = Gui::getFocusString(vs);
-    
+
     // alias
     std::set<df::interface_key>& savekeys = rkey.m_interface_keys;
     bool& _catch = rkey.m_catch;
@@ -226,15 +226,15 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
     bool& observe_for_autorewind = rkey.m_catch_observed_autorewind;
     menu_id& post_menu_id = rkey.m_post_menu;
     size_t& post_menu_depth = rkey.m_post_menu_depth;
-    
+
     // save a copy of keys, as we may modify it.
     const std::set<df::interface_key> inkeys = keys;
-    
+
     // default
     post_menu_depth = get_vs_depth(vs) + 1;
-    
+
     assert(savekeys.empty());
-    
+
     for (auto iter = inkeys.begin(); iter != inkeys.end(); ++iter)
     {
         switch(*iter)
@@ -250,7 +250,7 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
             break;
         case CHANGETAB:
         case SEC_CHANGETAB:
-            // always store changetab except in dwarfmode view, where it 
+            // always store changetab except in dwarfmode view, where it
             // toggles the menu.
             if (id != &df::viewscreen_dwarfmodest::_identity)
             {
@@ -261,7 +261,7 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
             break;
         }
     }
-    
+
     // by default, save second-scrolling and primary-scrolling and text entry.
     STORE_TEXTENTRY();
     STORE_SECONDSCROLL();
@@ -270,21 +270,21 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
     {
         REMOVE_CURSORSCROLL();
     }
-    
+
     if (id == &df::viewscreen_dwarfmodest::_identity)
     {
         switch(df::global::ui->main.mode)
         {
         case df::ui_sidebar_mode::Default:
             // This is the "root" menu.
-            
+
             //! RATIONALE these store a default submenu, so they need
             // an extra key applied to stabilize that default.
             if (contains(keys, D_STOCKPILES))
             {
                 apply_keys(cl, D_STOCKPILES);
                 savekeys = { ui.m_stockpile_mode };
-                
+
                 // this function restores the stockpile state.
                 restore_state_cb_t restore_stockpile_state = [](Client* client) -> int
                 {
@@ -295,13 +295,13 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
                     }
                     return 0;
                 };
-                
+
                 // call now to restore the stockpile state for this frame.
                 restore_stockpile_state(cl);
-                
+
                 // call every frame hereafter.
                 rkey.m_callbacks_post.emplace_back(std::move(restore_stockpile_state));
-                
+
                 // apply_keys has D_STOCKPILES, which is all we need -- no need to apply anything else.
                 keys.clear();
             }
@@ -311,28 +311,28 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
                 savekeys = { ui.m_designate_mode };
                 keys.clear();
             }
-            
+
             //! RATIONALE needs to restore some state after applying
             if (contains(keys, D_SQUADS))
             {
                 savekeys = { D_SQUADS };
                 keys.clear();
                 rkey.m_callbacks_post.emplace_back(restore_squads_state);
-                
+
                 // squad menu id is weird, this is important
                 rkey.m_post_menu = "*";
                 rkey.m_post_menu_depth = get_vs_depth(vs);
             }
-            
+
             //! RATIONALE these all need consistent cursor position
             if (contains(keys, D_VIEWUNIT))
             {
                 callbacks_post.emplace_back(restore_cursor);
                 callbacks_post.emplace_back(restore_unit_view_state);
                 ui.m_viewcycle = 0;
-                
+
                 callbacks.emplace_back(suppress_sidebar_refresh);
-                
+
                 // stop rewinds due to the unit view changing here.
                 blockcatch = true;
             }
@@ -396,7 +396,7 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
                 else if (startsWith(get_current_menu_id(), "dwarfmode/Build/Position"))
                 {
                     cursornudge(cl);
-                    
+
                     // error out if we don't arrive here.
                     post_menu_id = "dwarfmode/Build/Material/Groups";
                     post_menu_depth = get_vs_depth(vs);
@@ -411,7 +411,7 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
                     //! RATIONALE: this state is not cached by DF, so we must store it.
                     // TODO: check that all these really are uncached state.
                     // TODO: filter out ones which aren't relevant, these are quite a few.
-                    
+
                     savekeys.insert(_key);
                 }
             }
@@ -420,7 +420,7 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
                 for (const auto& _key : keys)
                 {
                     //! RATIONALE: unmarked submenus.
-                    if (_key == HOTKEY_BUILDING_CONSTRUCTION 
+                    if (_key == HOTKEY_BUILDING_CONSTRUCTION
                         || _key == HOTKEY_BUILDING_WORKSHOP
                         || _key == HOTKEY_BUILDING_TRAP
                         || _key == HOTKEY_BUILDING_MACHINE
@@ -466,7 +466,7 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
                         Gui::refreshSidebar();
                     }
                     ui.m_viewcycle++;
-                    
+
                     // go to lowest-ID'd unit
                     int32_t lowest_id = -2;
                     if (df::unit* unit_selected = vector_get(df::global::world->units.active, *df::global::ui_selected_unit))
@@ -488,13 +488,13 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
                             }
                         }
                     }
-                    
+
                     for (int32_t i = 0; i < ui.m_viewcycle; ++i)
                     {
                         vs->feed_key(UNITVIEW_NEXT);
                     }
                     keys.erase(UNITVIEW_NEXT);
-                    
+
                     // reset ui.m_viewcycle if we return to the original unit.
                     if (df::unit* unit_selected = vector_get(df::global::world->units.active, *df::global::ui_selected_unit))
                     {
@@ -504,7 +504,7 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
                         }
                     }
                 }
-                
+
                 for (const auto& _key : inkeys)
                 {
                     if (df::global::ui_unit_view_mode && df::global::ui_unit_view_mode->value == df::ui_unit_view_mode::PrefLabor)
@@ -517,7 +517,7 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
                             keys.erase(_key);
                         }
                     }
-                        
+
                     // abort "defer restore cursor" if the cursor moves.
                     if (_key >= CURSOR_UP && _key <= CURSOR_DOWN_Z_AUX)
                     {
@@ -578,7 +578,7 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
                         {
                             // levers have cursor weirdness, they need to remember it.
                             callbacks.emplace_back(produce_restore_cb_restore_cursor());
-                            
+
                             // prevents cursor saving on all future frames
                             callbacks.emplace_back([](Client* client) -> int
                                 {
@@ -669,12 +669,12 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
         if (is_designation_mode_sub(df::global::ui->main.mode))
         // this is not a designation mode, but a designation mode subscreen
         {
-            for (const auto& _key : inkeys) 
-            { 
-                if (_key >= DESIGNATE_TRAFFIC_LOW && _key <= DESIGNATE_TRAFFIC_DECREASE_WEIGHT_MORE) 
-                { 
-                    savekeys.insert(_key); 
-                } 
+            for (const auto& _key : inkeys)
+            {
+                if (_key >= DESIGNATE_TRAFFIC_LOW && _key <= DESIGNATE_TRAFFIC_DECREASE_WEIGHT_MORE)
+                {
+                    savekeys.insert(_key);
+                }
                 if (_key >= DESIGNATE_CLAIM && _key <= DESIGNATE_DIG_REMOVE_STAIRS_RAMPS)
                 {
                     savekeys.insert(_key);
@@ -704,7 +704,7 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
         id == &df::viewscreen_civlistst::_identity
     ) {
         STORE_CURSORSCROLL();
-        
+
         df::viewscreen_civlistst* vs_civ = static_cast<df::viewscreen_civlistst*>(vs);
         for (const auto& _key : inkeys)
         {
@@ -756,7 +756,7 @@ static void apply_special_case(Client* cl, std::set<df::interface_key>& keys, Re
                 }
             }
         }
-        
+
         UNSTORE_SECONDSCROLL();
     }
     else if (id == &df::viewscreen_layer_squad_schedulest::_identity)
@@ -803,7 +803,7 @@ void rewind_keyqueue_to_catch(Client* client)
             return;
         }
     }
-    
+
     // no catch found -- so we totally obliterate the keyqueue.
     ui.m_restore_keys.clear();
 }
@@ -821,7 +821,7 @@ static bool try_shrink_keyqueue_to(Client* client, size_t menu_depth, menu_id me
         {
             // we've returned to an earlier state exactly; let's pop commands.
             ui.m_restore_keys.erase(iter.base(), ui.m_restore_keys.end());
-            
+
             return true;
         }
         // check for rkeys which have matter-of-fact observation menu recorded.
@@ -831,12 +831,12 @@ static bool try_shrink_keyqueue_to(Client* client, size_t menu_depth, menu_id me
             {
                 // we've returned to an earlier state exactly; let's pop commands.
                 ui.m_restore_keys.erase(iter.base(), ui.m_restore_keys.end());
-                
+
                 return true;
             }
         }
     }
-    
+
     return false;
 }
 
@@ -846,23 +846,23 @@ void apply_command(std::set<df::interface_key>& keys, Client* cl, bool raw)
     virtual_identity* id;
     (void)id;
     UPDATE_VS(vs, id);
-    
+
     assert(cl);
     UIState& ui = cl->ui;
-    
+
     const bool at_root = is_at_root();
-    
+
     menu_id menu_id_prev = get_current_menu_id();
     size_t menu_depth_prev = get_vs_depth(vs);
     menu_id menu_id;
     size_t menu_depth;
-    
+
     if (raw)
     {
         // just apply it, don't process it at all.
         vs->feed(&keys);
         UPDATE_VS(vs, id);
-        
+
         // result
         menu_id = get_current_menu_id();
         menu_depth = get_vs_depth(vs);
@@ -874,19 +874,19 @@ void apply_command(std::set<df::interface_key>& keys, Client* cl, bool raw)
         // this may modify the keys list.
         RestoreKey rkey;
         rkey.m_check_start = ui.m_restore_keys.size();
-        
+
         apply_special_case(cl, keys, rkey);
-        
+
         UPDATE_VS(vs, id); // paranoia
-        
+
         // we will now apply the union of keys U rkey.m_interface_keys...
         keys.insert(rkey.m_interface_keys.begin(), rkey.m_interface_keys.end());
-        
+
         if (keys.empty())
         {
             return;
         }
-        
+
         // special pause behaviour (configurable in data/init/dfplex.txt)
         if (PAUSE_BEHAVIOUR == PauseBehaviour::EXPLICIT_ANYMENU || PAUSE_BEHAVIOUR == PauseBehaviour::EXPLICIT_DWARFMENU)
         {
@@ -897,26 +897,26 @@ void apply_command(std::set<df::interface_key>& keys, Client* cl, bool raw)
                     const bool toggle_pause =
                            (PAUSE_BEHAVIOUR == PauseBehaviour::EXPLICIT_ANYMENU)
                         || (PAUSE_BEHAVIOUR == PauseBehaviour::EXPLICIT_DWARFMENU && id == &df::viewscreen_dwarfmodest::_identity);
-                    
+
                     global_pause ^= toggle_pause;
                     World::SetPauseState(global_pause);
                 }
             }
         }
-        
+
         // apply, but only record it into the restore_keys stack if the result
         // is meaningful.
         {
             // need to copy the keys, since vs->feed can edit it.
             std::set<df::interface_key> _keys = keys;
-            
+
             vs->feed(&_keys);
             UPDATE_VS(vs, id);
         }
-        
+
         menu_id = get_current_menu_id();
         menu_depth = get_vs_depth(vs);
-        
+
         // if we have returned to the root menu, clear the record state.
         if (is_at_root())
         {
@@ -924,7 +924,7 @@ void apply_command(std::set<df::interface_key>& keys, Client* cl, bool raw)
             keys.clear();
             return;
         }
-        
+
         // fill in details if post-menu not set.
         if (rkey.m_post_menu == ::menu_id())
         {
@@ -943,7 +943,7 @@ void apply_command(std::set<df::interface_key>& keys, Client* cl, bool raw)
             }
         }
 
-        
+
         // one reason we would add the key to the record is if
         // we have gone down a menu.
         if (menu_id != menu_id_prev || menu_depth != menu_depth_prev)
@@ -960,15 +960,15 @@ void apply_command(std::set<df::interface_key>& keys, Client* cl, bool raw)
                     return;
                 }
             }
-            
+
             // save all the keys.
             rkey.m_interface_keys.insert(keys.begin(), keys.end());
             rkey.m_check_state = true;
-            
+
             // we've switched menus, so this is a catchpoint.
             rkey.m_catch = true;
         }
-        
+
         // check that we arrived at the expected spot.
         if (!menu_id_matches(rkey.m_post_menu, menu_id))
         {
@@ -977,24 +977,24 @@ void apply_command(std::set<df::interface_key>& keys, Client* cl, bool raw)
             keys.clear();
             return;
         }
-        
+
         // add any savekeys to the keyqueue.
         if (!rkey.m_interface_keys.empty())
         {
             // remove any pointless "NONE" commands
             rkey.m_interface_keys.erase(NONE);
-            
+
             // observed menu
             rkey.m_observed_menu = menu_id;
             rkey.m_observed_menu_depth = menu_depth;
-            
+
             // blockcatch is meant to be used to stop catches afterward.
             if (rkey.m_blockcatch)
             {
                 rkey.m_check_start = ui.m_restore_keys.size() + 1;
                 rkey.m_check_state = false;
             }
-            
+
             ui.m_restore_keys.push_back(
                 std::move(rkey)
             );

@@ -12,18 +12,18 @@ namespace DFPlex
 
 static std::fstream logfile;
 static bool is_open = false;
-    
+
 bool log_begin(const std::string& path)
 {
     if (!is_open)
     {
         logfile.open(path, std::ios_base::app);
-        
+
         if (!logfile.good()) return true;
-        
+
         is_open = true;
     }
-    
+
     return false;
 }
 

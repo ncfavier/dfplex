@@ -3,7 +3,7 @@
  * Copyright (c) 2014 mifki, ISC license.
  * Copyright (c) 2020 white-rabbit, ISC license
  */
- 
+
 #include "Client.hpp"
 #include "command.hpp"
 #include "config.hpp"
@@ -129,21 +129,21 @@ std::string UIState::debug_trace() const
         {
             trace += " (from " + std::to_string(key.m_check_start) + ")";
         }
-        
+
         ++i;
     }
-    
+
     return trace;
 }
 
-// some squads state must be done after 
+// some squads state must be done after
 static void restore_squads_state_post(Client* client)
 {
     UIState& ui = client->ui;
-    
+
     auto& squads = df::global::ui->squads;
     auto& ui_squads = ui.m_squads;
-    
+
     // selected kill targets
     if (squads.in_kill_list || squads.in_kill_rect)
     {
@@ -153,10 +153,10 @@ static void restore_squads_state_post(Client* client)
         for (size_t i = 0; i < targets.size() && i < squads.sel_kill_targets.size(); ++i)
         {
             squads.sel_kill_targets.at(i) = false;
-            
+
             df::unit* unit = targets.at(i);
             if (!unit) continue;
-            
+
             squads.sel_kill_targets.at(i) =
                 (
                     std::find(ui_squads.kill_selected.begin(), ui_squads.kill_selected.end(), unit->id)
@@ -175,26 +175,26 @@ static void restore_post_state(Client* client)
         *df::global::ui_building_in_resize = ui.m_building_in_resize;
         *df::global::ui_building_resize_radius = ui.m_building_resize_radius;
     }
-    
+
     restore_squads_state_post(client);
-    
+
     // mission report animation
     if (viewing_mission_report())
     {
         df::viewscreen* vs;
         virtual_identity* id;
         UPDATE_VS(vs, id);
-        
+
         if (id == &df::viewscreen_reportlistst::_identity)
         {
             df::viewscreen_reportlistst* vs_r = static_cast<df::viewscreen_reportlistst*>(vs);
-            
+
             // advance animation n ticks
             for (size_t i = 0; i < ui.m_mission_report_ticks; ++i)
             {
                 vs_r->logic();
             }
-            
+
             // pause state?
             vs_r->mission_report_paused = ui.m_mission_report_paused;
         }
@@ -208,7 +208,7 @@ static void restore_data(Client* client)
     virtual_identity* id;
     UPDATE_VS(vs, id);
     (void)id;
-    
+
     UIState& ui = client->ui;
     Gui::setMenuWidth(ui.m_menu_width, ui.m_area_map_width);
     df::global::ui_sidebar_menus->designation.marker_only = ui.m_designate_marker;
@@ -216,7 +216,7 @@ static void restore_data(Client* client)
     df::global::ui_sidebar_menus->designation.priority = ui.m_designate_priority;
     df::global::ui_sidebar_menus->location.in_create = false;
     df::global::ui_sidebar_menus->location.in_choose_deity = false;
-    
+
     // following unit
     df::global::ui->follow_unit = ui.m_follow_unit_id;
     if (df::unit::find(ui.m_follow_unit_id) == nullptr)
@@ -224,7 +224,7 @@ static void restore_data(Client* client)
         df::global::ui->follow_unit = -1;
         ui.m_follow_unit_id = -1;
     }
-    
+
     // following item
     df::global::ui->follow_item = ui.m_follow_item_id;
     if (df::item::find(ui.m_follow_item_id) == nullptr)
@@ -238,13 +238,13 @@ static void restore_data(Client* client)
 size_t hash_reportscreen_index(df::viewscreen_reportlistst* vs_r, int32_t index)
 {
     std::hash<uintptr_t> hash;
-    
+
     uintptr_t unit = reinterpret_cast<uintptr_t>(vector_get(vs_r->units, index));
     uintptr_t mission_report = vector_get(vs_r->mission_reports, index);
     uintptr_t spoils_report = vector_get(vs_r->spoils_reports, index);
     uintptr_t report_type = static_cast<int32_t>(vector_get(vs_r->types, index));
     // uintptr_t anon = reinterpret_cast<uintptr_t>(vector_get(vs_r->anon_1, index));
-    
+
     return hash(unit)
         ^ hash(hash(mission_report * 1062907 + 55871))
         ^ hash(hash(hash(spoils_report * 28183 + 906557)))
@@ -274,7 +274,7 @@ static void capture_stabilize_list_menu(Client* client, df::viewscreen* vs)
         if (_id == &df::viewscreen_reportlistst::_identity)
         {
             df::viewscreen_reportlistst* vs_r = static_cast<df::viewscreen_reportlistst*>(vs);
-            
+
             int32_t vs_depth = get_vs_depth(vs);
             ui.m_list_cursor.resize(vs_depth + 1);
             ui.m_list_cursor[vs_depth] = hash_reportscreen_index(vs_r, vs_r->cursor);
@@ -294,18 +294,18 @@ static bool stabilize_list_menu(Client* client)
 {
     using namespace df::enums::interface_key;
     UIState& ui = client->ui;
-        
+
     df::viewscreen* vs;
     virtual_identity* id;
     UPDATE_VS(vs, id);
-    
+
     size_t vs_depth = get_vs_depth(vs);
     if (vs_depth >= ui.m_list_cursor.size()) return false;
-    
+
     intptr_t list_cursor = ui.m_list_cursor.at(vs_depth);
-    
+
     if (list_cursor == -1) return false;
-    
+
     if (id == &df::viewscreen_announcelistst::_identity)
     {
         df::viewscreen_announcelistst* vs_a = static_cast<df::viewscreen_announcelistst*>(vs);
@@ -315,7 +315,7 @@ static bool stabilize_list_menu(Client* client)
             if (report->id == list_cursor)
             {
                 vs_a->sel_idx = index;
-                
+
                 // refresh
                 vs->feed_key(STANDARDSCROLL_UP);
                 vs->feed_key(STANDARDSCROLL_DOWN);
@@ -323,7 +323,7 @@ static bool stabilize_list_menu(Client* client)
             }
             index++;
         }
-        
+
         goto fail;
     }
     if (id == &df::viewscreen_reportlistst::_identity)
@@ -342,7 +342,7 @@ static bool stabilize_list_menu(Client* client)
                 return false;
             }
         }
-        
+
         goto fail;
     }
     if (id == &df::viewscreen_civlistst::_identity)
@@ -354,9 +354,9 @@ static bool stabilize_list_menu(Client* client)
             vs_c->map_y = ui.m_civ_y;
         }
     }
-    
+
     return false;
-    
+
 fail:
     ui.m_list_cursor.resize(vs_depth);
     return true;
@@ -381,7 +381,7 @@ static bool tradelist_advance(Client* client)
     return false;
 }
 
-// applies restore key 
+// applies restore key
 // returns true on error.
 std::string restore_state_error;
 bool apply_restore_key(Client* client)
@@ -393,11 +393,11 @@ bool apply_restore_key(Client* client)
     UPDATE_VS(vs, id);
     (void)id;
     int callback_error_code = 0;
-    
+
     // feed requires a non-const pointer to the set, so we copy it here.
     // OPTIMIZE: is this really necessary?
     std::set<df::interface_key> keys = rkey.m_interface_keys;
-    
+
     // pre-apply callbacks
     for (restore_state_cb_t& cb : rkey.m_callbacks)
     {
@@ -407,13 +407,13 @@ bool apply_restore_key(Client* client)
             goto callback_error;
         }
     }
-    
+
     if (!keys.empty())
     {
         vs->feed(&keys);
         UPDATE_VS(vs, id);
     }
-    
+
     // post-apply callbacks
     for (restore_state_cb_t& cb : rkey.m_callbacks_post)
     {
@@ -423,35 +423,35 @@ bool apply_restore_key(Client* client)
             goto callback_error;
         }
     }
-    
+
     if (callback_error_code)
     {
     callback_error:
         restore_state_error = "Callback (post) failed with error code " + std::to_string(callback_error_code);
-        
+
         // erase past after this key.
         ui.m_restore_keys.erase(
             ui.m_restore_keys.begin() + ui.m_restore_progress + 1,
             ui.m_restore_keys.end()
         );
-        
+
         return true;
-    }    
-    
+    }
+
     // change the restorekey's observed menu.
     menu_id menu_id = get_current_menu_id();
     size_t menu_depth = get_vs_depth(vs);
-    
+
     if (stabilize_list_menu(client))
     {
         restore_state_error = "Failed to stabilize cursor in " + menu_id;
-        
+
         // erase past after this key.
         ui.m_restore_keys.erase(
             ui.m_restore_keys.begin() + ui.m_restore_progress + 1,
             ui.m_restore_keys.end()
         );
-        
+
         return true;
     }
 
@@ -464,7 +464,7 @@ bool apply_restore_key(Client* client)
     }
     rkey.m_observed_menu = menu_id;
     rkey.m_observed_menu_depth = menu_depth;
-    
+
     // validate that we have ended up in the right spot.
     if (rkey.m_check_state)
     {
@@ -472,7 +472,7 @@ bool apply_restore_key(Client* client)
         {
             // we did not arrive at the menu we expected to :(
         stack_error:
-            
+
             // error trace
             if (rkey.m_check_state)
             {
@@ -488,18 +488,18 @@ bool apply_restore_key(Client* client)
             {
                 restore_state_error = "Unkown reason";
             }
-            
+
             restore_state_error += "; arrived at " + menu_id + " +" + std::to_string(menu_depth);
-        
+
             restore_state_error += "\n" + ui.debug_trace();
             restore_state_error += "\n(erasing from " + std::to_string(rkey.m_check_start) + " on)\n";
-            
+
             // remove all keys past rkey.m_check_start
             ui.m_restore_keys.erase(
                 ui.m_restore_keys.begin() + rkey.m_check_start,
                 ui.m_restore_keys.end()
             );
-            
+
             // we erased to before the current spot, so we have to retry as
             // we have no ability to accurately rewind.
             if (rkey.m_check_start <= ui.m_restore_progress)
@@ -510,7 +510,7 @@ bool apply_restore_key(Client* client)
             }
         }
     }
-    
+
     // tradelist immediately advances to a new screen
     // ometimes, so we must simulate that.
     if (tradelist_advance(client))
@@ -518,7 +518,7 @@ bool apply_restore_key(Client* client)
         UPDATE_VS(vs, id);
         //vs->feed_key(df::enums::interface_key::STANDARDSCROLL_DOWN);
     }
-    
+
     ui.m_restore_progress++;
     return false;
 }
@@ -533,7 +533,7 @@ RestoreResult restore_state(Client* client)
 {
     restore_state_error = "";
     UIState& ui = client->ui;
-    
+
     if (ui.m_restore_progress_root < UIState::K_RESTORE_PROGRESS_ROOT_MAX)
     {
         if (return_to_root())
@@ -550,14 +550,14 @@ RestoreResult restore_state(Client* client)
             return RestoreResult::ABORT_PLEX;
         }
     }
-    
+
     restore_data(client);
-    
+
     df::viewscreen* vs;
     virtual_identity* id;
     UPDATE_VS(vs, id);
     (void)id;
-    
+
     // check for keystack overflow
     if (ui.m_restore_keys.size() > KEYSTACK_MAX && KEYSTACK_MAX > 0)
     {
@@ -565,7 +565,7 @@ RestoreResult restore_state(Client* client)
         ui.m_restore_keys.clear();
         return RestoreResult::FAIL;
     }
-    
+
     // apply state keys
     while (ui.m_restore_progress < ui.m_restore_keys.size())
     {
@@ -574,28 +574,28 @@ RestoreResult restore_state(Client* client)
             return RestoreResult::FAIL;
         }
     }
-    
+
     if (!ui.m_defer_restore_cursor && !ui.m_freeze_cursor && !following_item_or_unit())
     {
         restore_cursor(client);
     }
-    
+
     if (following_item_or_unit())
     {
         ui.m_suppress_sidebar_refresh = true;
-        
+
         // This shouldn't do anything, but it seems to cause df to update
         // the following camera coords.
         vs->feed_key(df::enums::interface_key::UNITVIEW_FOLLOW);
     }
-    
+
     restore_post_state(client);
-    
+
     if (!ui.m_suppress_sidebar_refresh)
     {
         Gui::refreshSidebar();
     }
-    
+
     // reset these for next stack traversal.
     ui.next();
     return RestoreResult::SUCCESS;
@@ -609,9 +609,9 @@ void capture_post_state(Client* client)
     df::viewscreen* vs;
     virtual_identity* id;
     UPDATE_VS(vs, id);
-    
+
     UIState& ui = client->ui;
-    
+
     if (!ui.m_freeze_cursor)
     {
         if (!ui.m_following_client)
@@ -619,7 +619,7 @@ void capture_post_state(Client* client)
             const bool prev_set = ui.m_viewcoord_set;
             const Coord prev_coord = ui.m_viewcoord;
             getOptCoord(ui.m_viewcoord_set, ui.m_viewcoord, Gui::getViewCoords);
-            
+
             // update stored viewcoord if the camera moves.
             if (!prev_set)
             {
@@ -633,7 +633,7 @@ void capture_post_state(Client* client)
             }
             ui.m_stored_viewcoord_skip = false;
         }
-        
+
         getOptCoord(ui.m_cursorcoord_set, ui.m_cursorcoord, Gui::getCursorCoords);
         getOptCoord(ui.m_designationcoord_set, ui.m_designationcoord, Gui::getDesignationCoords);
         ui.m_burrowcoord_set = true;
@@ -665,11 +665,11 @@ void capture_post_state(Client* client)
         ui.m_squadcoord_start.z = df::global::ui->squads.rect_start.z;
     }
     ui.m_freeze_cursor = false;
-    
+
     ui.m_designate_marker = df::global::ui_sidebar_menus->designation.marker_only;
     ui.m_designate_priority_set = df::global::ui_sidebar_menus->designation.priority_set;
     ui.m_designate_priority = df::global::ui_sidebar_menus->designation.priority;
-    
+
     if (df::global::ui->main.mode == df::enums::ui_sidebar_mode::Stockpiles)
     {
         ui.m_custom_stockpile_set = true;
@@ -690,7 +690,7 @@ void capture_post_state(Client* client)
 
     // burrows
     ui.m_brush_erasing = df::global::ui->burrows.brush_erasing;
-    
+
     // unit view menu
     ui.m_unit_view_mode = df::global::ui_unit_view_mode->value;
     ui.m_show_combat = df::global::ui_sidebar_menus->show_combat;
@@ -717,7 +717,7 @@ void capture_post_state(Client* client)
             if (df::global::ui_unit_view_mode && df::global::ui_unit_view_mode->value == df::ui_unit_view_mode::PrefLabor)
             {
                 df::viewscreen_dwarfmodest* vs_dwarf = static_cast<df::viewscreen_dwarfmodest*>(vs);
-                
+
                 ui.m_view_unit_labor_scroll = *df::global::ui_look_cursor;
                 if (vs_dwarf->sideSubmenu)
                 {
@@ -730,49 +730,49 @@ void capture_post_state(Client* client)
             }
         }
     }
-    
+
     Gui::getMenuWidth(ui.m_menu_width, ui.m_area_map_width);
-    
+
     if (df::global::ui_building_in_resize)
     {
         ui.m_building_in_resize = *df::global::ui_building_in_resize;
         ui.m_building_resize_radius = *df::global::ui_building_resize_radius;
     }
-    
+
     ui.m_designationcoord_share = false;
     ui.m_squadcoord_share = false;
     ui.m_burrowcoord_share = false;
-    
+
     // following unit
     ui.m_follow_unit_id = df::global::ui->follow_unit;
 
     // following item
     ui.m_follow_item_id = df::global::ui->follow_item;
-    
+
     // menu stabilizing
     ui.m_list_cursor.clear();
     ui.m_civ_x = -1;
     ui.m_civ_y = -1;
-    
+
     df::viewscreen* _vs = &df::global::gview->view;
     while (_vs)
     {
         capture_stabilize_list_menu(client, _vs);
-        
+
         _vs = _vs->child;
     }
-    
+
     // squads
     if (id == &df::viewscreen_dwarfmodest::_identity
         && df::global::ui->main.mode == df::ui_sidebar_mode::Squads)
     {
         auto& squads = df::global::ui->squads;
         auto& ui_squads = ui.m_squads;
-        
+
         // selected individuals
         ui_squads.in_select_indiv = squads.in_select_indiv;
         ui_squads.indiv_selected = squads.indiv_selected;
-        
+
         // selected squads
         ui_squads.squad_selected.clear();
         for (size_t i = 0; i < squads.list.size() && i < squads.sel_squads.size(); ++i)
@@ -783,9 +783,9 @@ void capture_post_state(Client* client)
                 ui_squads.squad_selected.push_back(squad->id);
             }
         }
-        
+
         ui.m_squadcoord_share = squads.in_kill_rect;
-        
+
         // selected kill targets
         ui_squads.kill_selected.clear();
         if (squads.in_kill_list || squads.in_kill_rect)
@@ -810,7 +810,7 @@ void capture_post_state(Client* client)
     {
         // clear some state?
     }
-    
+
     if (id == &df::viewscreen_dwarfmodest::_identity
         &&(
             is_designation_mode(df::global::ui->main.mode)
@@ -820,7 +820,7 @@ void capture_post_state(Client* client)
     {
         ui.m_designationcoord_share = true;
     }
-    
+
     if (id == &df::viewscreen_dwarfmodest::_identity
         &&(
             df::global::ui->main.mode == df::ui_sidebar_mode::Burrows
@@ -829,12 +829,12 @@ void capture_post_state(Client* client)
     {
         ui.m_burrowcoord_share = true;
     }
-    
+
     // mission report animation
     if (viewing_mission_report())
     {
         ui.m_mission_report_paused = mission_report_paused();
-        
+
         // stop after finished or after 5 minutes.
         if (!ui.m_mission_report_paused && !mission_report_complete() && ui.m_mission_report_ticks < 60 * 300)
         {

@@ -3,7 +3,7 @@
  * Copyright (c) 2014 mifki, ISC license.
  * Copyright (c) 2020 white-rabbit, ISC license
  */
- 
+
 #include "dfplex.hpp"
 #include "staticserver.hpp"
 
@@ -118,7 +118,7 @@ bool is_paused()
             if (ui.m_pause_required) return true;
         }
     }
-    
+
     return false;
 }
 
@@ -144,7 +144,7 @@ static std::set<df::interface_key> match_to_keys(const KeyEvent& match)
     }else {
         keys  = keybindings.toInterfaceKey(match);
     }
-    
+
     return keys;
 }
 
@@ -193,7 +193,7 @@ TypeResult _type_key(const std::set<df::interface_key>& keys, std::string& io_st
         if (contains(keys, string_key))
         {
             char c = 0;
-            
+
             // convert key to key char
             size_t keydiff = static_cast<size_t>(string_key) - static_cast<size_t>(interface_key::STRING_A032) + 32;
             if (keydiff >= 32 && keydiff < 127)
@@ -204,7 +204,7 @@ TypeResult _type_key(const std::set<df::interface_key>& keys, std::string& io_st
             {
                 c = keydiff + 1;
             }
-            
+
             if (c)
             {
                 io_str += std::string(1, c);
@@ -217,7 +217,7 @@ TypeResult _type_key(const std::set<df::interface_key>& keys, std::string& io_st
 void apply_key(const KeyEvent& match, Client* cl, bool raw)
 {
     std::set<df::interface_key> keys = match_to_keys(match);
-    
+
     // special keys
     if (CHAT_ENABLED && !raw && cl && is_realtime_dwarf_menu() && !cl->ui.m_dfplex_chat_config)
     {
@@ -249,7 +249,7 @@ void apply_key(const KeyEvent& match, Client* cl, bool raw)
                 cl->ui.m_dfplex_chat_message = "";
                 break;
             }
-            
+
             return;
         }
         else if (CHATKEY != 0 && !raw && (match.type == EventType::type_unicode || match.type == EventType::type_key) && match.unicode == CHATKEY)
@@ -301,7 +301,7 @@ void apply_key(const KeyEvent& match, Client* cl, bool raw)
                 default:
                     break;
             }
-            
+
             cl->id->nick = cl->id->nick.substr(0, 16);
             cl->id->nick = replace_all(cl->id->nick, "\n", "");
             cl->id->nick = replace_all(cl->id->nick, " ", "-");
@@ -319,7 +319,7 @@ void apply_key(const KeyEvent& match, Client* cl, bool raw)
         if (uniplexing_requested)
         {
             // returning to plex mode entails restoring to root.
-            
+
             // for some reason this causes the game to crash..?
             if (!defer_return_to_root())
             {
@@ -362,16 +362,16 @@ void apply_key(const KeyEvent& match, Client* cl, bool raw)
             delta++;
         if (PREV_CLIENT_POS_KEY != 0 &&  (match.type == EventType::type_unicode || match.type == EventType::type_key) && match.unicode == PREV_CLIENT_POS_KEY)
             delta--;
-        
+
         cl->ui.m_following_client = false;
-            
+
         if (delta != 0)
         {
             const size_t client_count = get_client_count();
             cl->ui.m_stored_viewcoord_skip = true;
-            
+
             Client* dst;
-            
+
             if (cl->ui.m_stored_camera_return)
             {
                 // return to our own position
@@ -382,10 +382,10 @@ void apply_key(const KeyEvent& match, Client* cl, bool raw)
             {
                 // don't change client_id if we're not currently following a client, unless client_id is set to ourself.
                 //if (client_id != get_client_index(cl->id.get()) && !cl->ui.m_following_client) delta = 0;
-                
+
                 // advance to next/prev client id
                 client_id = (client_id + delta + client_count) % client_count;
-                
+
                 // follow the given client.
                 dst = get_client(client_id);
                 if (dst)
@@ -394,7 +394,7 @@ void apply_key(const KeyEvent& match, Client* cl, bool raw)
                     cl->ui.m_following_client = true;
                 }
             }
-            
+
             // zoom to client right now
             // (This is important esp. if the dst == cl)
             if (dst && dst->ui.m_viewcoord_set && dst->ui.m_viewcoord.x >= 0)
@@ -415,14 +415,14 @@ void apply_key(const KeyEvent& match, Client* cl, bool raw)
         *_out << "keypress: " << match << endl;
         *_out << keybindings.getCommandNames(keys) << endl;
     }
-    
+
     // single-stepping has to be handled specially.
     if (contains(keys, df::enums::interface_key::D_ONESTEP) && (is_at_root() || get_current_menu_id() == "dwarfmode/Squads"))
     {
         single_step_requested = true;
         keys.erase(df::enums::interface_key::D_ONESTEP);
     }
-    
+
     apply_command(keys, cl, raw);
 }
 
@@ -431,9 +431,9 @@ void apply_keys(Client* client, bool raw)
     while (!client->keyqueue.empty())
     {
         const KeyEvent& match = client->keyqueue.front();
-        
+
         apply_key(match, client, raw);
-        
+
         client->keyqueue.pop();
     }
 }
@@ -444,30 +444,30 @@ static void update_uniplexing()
     virtual_identity* id;
     (void)id;
     UPDATE_VS(vs, id);
-    
+
     // get key inputs and update all clients' state.
     size_t i = 0;
-    
+
     for (Client* client = get_client(i); client; i++, client = get_client(i))
     {
         if (client->update_cb) client->update_cb(client, { false, false });
     }
-    
+
     i = 0;
-    
+
     for (Client* client = get_client(i); client; i++, client = get_client(i))
     {
         apply_keys(client, true);
-        
+
         if (plexing) break;
     }
-    
+
     // set info message
     i = 0;
     menu_id menu_id = get_current_menu_id();
     std::string focus_string = Gui::getFocusString(vs);
     bool menu_modified = (menu_id != focus_string);
-    std::string info_message = 
+    std::string info_message =
         std::string("(UP) ")
         + (menu_modified ? "[" : "") + focus_string + (menu_modified ? "]" : "")
         + " +" + std::to_string(get_vs_depth(vs));
@@ -476,9 +476,9 @@ static void update_uniplexing()
         // (info) UP -- uniplexing
         client->info_message = info_message;
     }
-    
+
     UPDATE_VS(vs, id);
-    
+
     if (server_debug_out)
     {
         if (df::global::ui_sidebar_menus && id == &df::viewscreen_dwarfmodest::_identity)
@@ -502,23 +502,23 @@ static bool update_multiplexing(Client* client)
     virtual_identity* id;
     (void)id;
     UPDATE_VS(vs, id);
-    
+
     if (client)
     {
         UIState& ui = client->ui;
-        
+
         // restore UI state for player
         RestoreResult result = restore_state(client);
-        
+
         // apply new actions from user.
         switch(result)
         {
         case RestoreResult::SUCCESS:
-        
+
             DFPlex::run_cb_post_state_restore(client);
-            
+
             UPDATE_VS(vs, id);
-            
+
             if (restore_state_error.length())
             {
                 _out->color(COLOR_YELLOW);
@@ -526,26 +526,26 @@ static bool update_multiplexing(Client* client)
                 *_out << restore_state_error << endl;
                 _out->color(COLOR_RESET);
             }
-            
+
             if (CHAT_ENABLED && id == &df::viewscreen_dwarfmodest::_identity)
             {
                 g_chatlog.tick(client);
             }
-            
+
             // update screen -- but make sure the game is paused so that it doesn't advance.
-            World::SetPauseState(true);            
+            World::SetPauseState(true);
             vs->logic();
             World::SetPauseState(global_pause);
-            
+
             if (client->update_cb) client->update_cb(client, { true, false });
-            
+
             apply_keys(client, false);
-            
+
             deferred_state_restore(client);
-        
+
             // obtain and store new state.
             capture_post_state(client);
-            
+
             // (info) MP -- multiplexing
             {
                 UPDATE_VS(vs, id);
@@ -571,7 +571,7 @@ static bool update_multiplexing(Client* client)
                 }
             }
             return true;
-            
+
         case RestoreResult::FAIL:
             UPDATE_VS(vs, id);
             _out->color(COLOR_RED);
@@ -579,7 +579,7 @@ static bool update_multiplexing(Client* client)
             *_out << restore_state_error << endl;
             _out->color(COLOR_RESET);
             break;
-            
+
         case RestoreResult::ABORT_PLEX:
         default:
             // stop plexing.
@@ -588,10 +588,10 @@ static bool update_multiplexing(Client* client)
             World::SetPauseState(global_pause);
             break;
         }
-        
+
         deferred_state_restore(client);
     }
-    
+
     return false;
 }
 
@@ -601,13 +601,13 @@ void check_events()
     df::viewscreen* vs;
     virtual_identity* id;
     UPDATE_VS(vs, id);
-    
+
     // as a default, plex this frame.
     if (!uniplexing_requested)
     {
         plexing = true;
     }
-    
+
     // temporarily enable uniplex mode if we are not at the root or
     // if an announcement is visible.
     if (plexing)
@@ -629,13 +629,13 @@ void check_events()
             World::SetPauseState(global_pause);
         }
     }
-    
+
     // check if uniplexing was requested.
     if (uniplexing_requested)
     {
         plexing = false;
     }
-    
+
     // automatically disable uniplex mode sometimes
     // FIXME spaghetti / not always expected behaviour...
     if (id == &df::viewscreen_dwarfmodest::_identity && !uniplexing_requested)
@@ -647,21 +647,21 @@ void check_events()
             // entering df mode.
             // automatically start plexing when entering the game for the first time.
             plexing = true;
-            
+
             // reset some ui state
             size_t i = 0;
             for (Client* client = get_client(i); client; i++, client = get_client(i))
             {
                 client->ui.reset();
             }
-            
+
             // pause, for convenience
             global_pause = true;
             World::SetPauseState(global_pause);
         }
         in_df_mode = true;
     }
-    
+
     // automatically enable uniplexing in options and title screen
     if (!is_dwarf_mode())
     {
@@ -670,7 +670,7 @@ void check_events()
         // when re-entering dwarf mode, plex right away.
         uniplexing_requested = false;
     }
-    
+
     // check if traders arrived, put everyone into trading screen (but multiplexed!)
     // (TODO)
 }
@@ -678,21 +678,21 @@ void check_events()
 void dfplex_update()
 {
     if (!_out) return;
-    
+
     tthread::lock_guard<decltype(dfplex_mutex)> guard(dfplex_mutex);
     //CoreSuspender suspend;
-    
+
     // reload ban list every 45 seconds.
     if (frames_elapsed % (60 * 45) == 0)
     {
         load_bans();
     }
-    
+
     df::viewscreen* vs;
     virtual_identity* id;
     (void)id;
     UPDATE_VS(vs, id);
-    
+
     if (!in_df_mode)
     {
         //#define SKIP_INTRO
@@ -707,11 +707,11 @@ void dfplex_update()
         }
         #endif
     }
-    
+
     // sometimes the game must enable/disable uniplex mode on its own accord.
     // this handles that.
     check_events();
-    
+
     size_t clients_count = get_client_count();
     if (clients_count == 0)
     {
@@ -719,7 +719,7 @@ void dfplex_update()
         World::SetPauseState(true);
     }
     else
-    {        
+    {
         // multiplexing
         if (plexing)
         {
@@ -765,10 +765,10 @@ void dfplex_update()
                             if (cl && cl->ui.m_following_client && cl->ui.m_client_screen_cycle == client->id)
                             {
                                 restore_size();
-                                
+
                                 // set to client's screen size
                                 set_size(cl->desired_dimx, cl->desired_dimy);
-                                
+
                                 // center on client's screen (or cursor if available.)
                                 if (client->ui.m_cursorcoord_set && client->ui.m_cursorcoord.x >= 0)
                                 {
@@ -780,10 +780,10 @@ void dfplex_update()
                                         ({client->ui.m_map_dimx/2, client->ui.m_map_dimy/2, 0})
                                     );
                                 }
-                                
+
                                 // use client's sidebar status
                                 Gui::setMenuWidth(cl->ui.m_menu_width, cl->ui.m_area_map_width);
-                                
+
                                 perform_render();
                                 scrape_screenbuf(cl);
                                 transfer_screenbuf_client(cl);
@@ -801,28 +801,28 @@ void dfplex_update()
                 }
             }
         }
-        
+
         // multiplex mode can cause a switch back to plexing, so
         // we do not use an "else" here.
-        
+
         // uniplexing
         if (!plexing)
         {
             set_size(gps->dimx, gps->dimy);
             update_uniplexing();
-            
+
             if (!plexing)
             {
                 perform_render();
                 transfer_screenbuf_to_all();
             }
-            
+
             global_pause = World::ReadPauseState();
         }
-        
+
         // decide DF's paused status for the remainder of the frame.
         World::SetPauseState(is_paused());
-        
+
         // take a single step
         if (single_step_requested && plexing && is_at_root() && is_paused())
         {
@@ -832,7 +832,7 @@ void dfplex_update()
         }
         single_step_requested = false;
     }
-    
+
     frames_elapsed++;
 }
 
@@ -842,13 +842,13 @@ void on_report(color_ostream &out, void* v)
     tthread::lock_guard<decltype(dfplex_mutex)> guard(dfplex_mutex);
     df::report* report = df::report::find((intptr_t)v);
     df::announcement_flags flags = df::global::d_init->announcements.flags[report->type];
-    
+
     // respect pause flags
     if (flags.bits.PAUSE)
     {
         global_pause = true;
     }
-    
+
     // this announcement recenters the camera
     if (flags.bits.RECENTER)
     {
@@ -862,7 +862,7 @@ void on_report(color_ostream &out, void* v)
                 if (client)
                 {
                     auto dims = DFHack::Gui::getDwarfmodeViewDims();
-                    
+
                     client->ui.m_viewcoord_set = true;
                     // go to coord - map dimensions/2 to center.
                     client->ui.m_viewcoord = report->pos.operator-(Coord{ (dims.map_x2 - dims.map_x1) / 2, (dims.map_y2 - dims.map_y1) / 2, 0});
@@ -881,19 +881,19 @@ static void enable()
 {
     if (enabled) return;
     enabled = true;
-    
+
     if (DFPlex::log_begin("dfplex_server.log"))
     {
         Core::printerr("Failed to open dfplex_server.log for output.\n");
     }
     DFPlex::log_message("Server started.");
     DFPlex::log_message("================================");
-    
-    EventManager::registerListener(EventManager::EventType::REPORT, 
+
+    EventManager::registerListener(EventManager::EventType::REPORT,
     EventManager::EventHandler {
         on_report, 0
     }, plugin_self);
-    
+
     hook_renderer();
 
     if (PORT != 0)
@@ -910,26 +910,26 @@ static void disable()
 {
     if (!enabled) return;
     enabled = false;
-    
+
     DFPlex::run_cb_shutdown();
-    
+
     DFPlex::cleanup_callbacks();
-    
+
     // TODO: shut down static site server, websockets.
-    
+
     DFPlex::log_message("Server closed.");
-    
+
     DFPlex::log_end();
-    
+
     unhook_renderer();
 }
 
 DFhackCExport command_result plugin_init(color_ostream &out, vector <PluginCommand> &commands)
 {
     assert(!enabled);
-    
+
     memset(screenbuf, 0, sizeof(screenbuf));
-    
+
     _out = &out;
 
     if (!keybindings.loadKeyBindings(out,"data/init/interface.txt")){
@@ -940,9 +940,9 @@ DFhackCExport command_result plugin_init(color_ostream &out, vector <PluginComma
     }
 
     load_config();
-    
+
     load_bans();
-    
+
     if (command_init())
     {
         out.color(COLOR_RED);
@@ -950,17 +950,17 @@ DFhackCExport command_result plugin_init(color_ostream &out, vector <PluginComma
         out.color(COLOR_RESET);
         return CR_OK;
     }
-    
+
     static std::function<Client*()> fn_add_client = []() -> Client* { return add_client(); };
     static std::function<Client*(client_update_cb&&)> fn_add_client_cb = [](client_update_cb&& cb) -> Client* { return add_client(std::move(cb)); };
     static std::function<void(Client*)> fn_remove_client = remove_client;
-    
+
     Core::getInstance().RegisterData(&dfplex_mutex, "dfplex_mutex");
     Core::getInstance().RegisterData(&g_chatlog, "dfplex_chatlog");
     Core::getInstance().RegisterData(&fn_add_client, "dfplex_add_client");
     Core::getInstance().RegisterData(&fn_add_client_cb, "dfplex_add_client_cb");
     Core::getInstance().RegisterData(&fn_remove_client, "dfplex_remove_client");
-    
+
     return CR_OK;
 }
 
@@ -970,9 +970,9 @@ DFhackCExport command_result plugin_onupdate(color_ostream &out)
         tthread::lock_guard<decltype(dfplex_mutex)> guard(dfplex_mutex);
         _out = &out;
     }
-    
+
     if (!enabled) return CR_OK;
-    
+
     try
     {
         dfplex_update();
@@ -992,12 +992,12 @@ DFhackCExport command_result plugin_enable(color_ostream &out, bool to_enable)
 {
     tthread::lock_guard<decltype(dfplex_mutex)> guard(dfplex_mutex);
     _out = &out;
-    
+
     if (to_enable)
         enable();
     else
         disable();
-        
+
     return CR_OK;
 }
 
@@ -1005,9 +1005,9 @@ DFhackCExport command_result plugin_shutdown(color_ostream &out)
 {
     tthread::lock_guard<decltype(dfplex_mutex)> guard(dfplex_mutex);
     _out = &out;
-    
+
     if (!enabled) return CR_OK;
-    
+
     disable();
 
     return CR_OK;

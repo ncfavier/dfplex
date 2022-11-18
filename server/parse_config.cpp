@@ -18,7 +18,7 @@ std::vector<config_symbol> parse_config_file(const std::string& path_to_raw)
 		std::cerr << "Dwarfplex failed to open config file, skipping." << std::endl;
 		return symbols;
 	}
-    
+
     std::string line;
     while(getline(f, line))
     {
@@ -33,13 +33,13 @@ std::vector<config_symbol> parse_config_file(const std::string& path_to_raw)
                 {
                     break;
                 }
-                
+
                 // to parse interface.txt
                 if (offset == line.length() - 3 && line.at(line.length() - 2) == ']')
                 {
                     offset++;
                 }
-                
+
                 // found [ and ] tokens, now find :
                 size_t sep_index = seek;
                 bool set_op = false;
@@ -48,20 +48,20 @@ std::vector<config_symbol> parse_config_file(const std::string& path_to_raw)
                 while (sep_index < offset)
                 {
                     size_t start_index = sep_index + 1;
-                    
+
                     // to parse interface.txt
                     size_t add_search = 0;
                     if (set_op && symbol.op == "KEY") add_search = 1;
-                    
+
                     sep_index = line.find(":", start_index + add_search);
                     if (sep_index == std::string::npos)
                     {
                         // last match is ':'
                         sep_index = offset;
                     }
-                    
+
                     std::string sub = line.substr(start_index, sep_index - start_index);
-                    
+
                     if (set_op)
                     {
                         symbol.args.emplace_back(std::move(sub));

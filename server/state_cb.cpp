@@ -3,12 +3,12 @@
  * Copyright (c) 2014 mifki, ISC license.
  * Copyright (c) 2020 white-rabbit, ISC license
  */
- 
+
 /*
     This file contains helper functions which can be attached as callbacks
     to RestoreKeys to affect how state is restored.
 */
- 
+
 #include "Client.hpp"
 #include "command.hpp"
 #include "config.hpp"
@@ -93,7 +93,7 @@ int suppress_sidebar_refresh(Client* client)
 int restore_cursor(Client* client)
 {
     UIState& ui = client->ui;
-    
+
     // sets viewcoords
     if (ui.m_viewcoord_set)
     {
@@ -109,7 +109,7 @@ int restore_cursor(Client* client)
             );
         }
     }
-    
+
     // sets cursor coords
     if (ui.m_cursorcoord_set)
     {
@@ -132,7 +132,7 @@ int restore_cursor(Client* client)
         df::global::ui->burrows.rect_start.z = ui.m_burrowcoord.z;
     }
     df::global::ui->burrows.brush_erasing = ui.m_brush_erasing;
-    
+
     return 0;
 }
 
@@ -150,19 +150,19 @@ restore_state_cb_t produce_restore_cb_restore_cursor()
 int restore_squads_state(Client* client)
 {
     UIState& ui = client->ui;
-    
+
     auto& squads = df::global::ui->squads;
     auto& ui_squads = ui.m_squads;
-    
+
     // need to clear this on entry.
     squads.in_kill_rect = false;
     squads.in_kill_order = false;
     squads.in_kill_list = false;
     squads.in_move_order = false;
-    
+
     // selected individuals
     squads.in_select_indiv = ui_squads.in_select_indiv;
-    
+
     // sanitize
     squads.indiv_selected.clear();
     for (int32_t figure_id : ui_squads.indiv_selected)
@@ -171,7 +171,7 @@ int restore_squads_state(Client* client)
         if (!figure) continue;
         df::unit* unit = df::unit::find(figure->unit_id);
         if (!unit) continue;
-        
+
         // ensure unit still part of a squad.
         bool found_squad = false;
         for (df::squad* squad : squads.list)
@@ -183,11 +183,11 @@ int restore_squads_state(Client* client)
             }
         }
         if (!found_squad) continue;
-        
+
         // ensure unit is assigned to a squad position.
         df::squad* squad = df::squad::find(unit->military.squad_id);
         if (!squad) continue;
-        
+
         bool found_position = false;
         for (df::squad_position* squad_position : squad->positions)
         {
@@ -197,27 +197,27 @@ int restore_squads_state(Client* client)
             }
         }
         if (!found_position) continue;
-        
+
         // we were unable to prove that this figure is not valid to select,
         // so we will allow this figure to remain selected.
         squads.indiv_selected.push_back(figure_id);
     }
-    
+
     // selected squads
     for (size_t i = 0; i < squads.list.size() && i < squads.sel_squads.size(); ++i)
     {
         squads.sel_squads.at(i) = false;
-        
+
         df::squad* squad = squads.list.at(i);
         if (!squad) continue;
-        
+
         squads.sel_squads.at(i) =
             (
                 std::find(ui_squads.squad_selected.begin(), ui_squads.squad_selected.end(), squad->id)
                 != ui_squads.squad_selected.end()
             );
     }
-    
+
     return 0;
 }
 
@@ -225,12 +225,12 @@ int restore_squads_state(Client* client)
 int restore_unit_view_state(Client* client)
 {
     using namespace df::enums::interface_key;
-    
+
     df::viewscreen* vs;
     virtual_identity* id;
     (void)id;
     UPDATE_VS(vs, id);
-    
+
     UIState& ui = client->ui;
     df::global::ui_unit_view_mode->value = ui.m_unit_view_mode;
     df::global::ui_sidebar_menus->show_combat = ui.m_show_combat;
@@ -244,7 +244,7 @@ int restore_unit_view_state(Client* client)
         Coord pos = unit->pos;
         Gui::setCursorCoords(pos.x, pos.y, pos.z);
         Gui::refreshSidebar();
-        
+
         // rapidly tap UNITVIEW_NEXT until the unit we desire is found.
         vs->feed_key(UNITVIEW_NEXT);
         int32_t unit_sel_start = *df::global::ui_selected_unit;
@@ -266,7 +266,7 @@ int restore_unit_view_state(Client* client)
                 break;
             }
         }
-        
+
         if (!success)
         {
             // return to the stored cursor position.
@@ -279,13 +279,13 @@ int restore_unit_view_state(Client* client)
         {
             ui.m_defer_restore_cursor = true;
             ui.m_suppress_sidebar_refresh = true;
-            
+
             // restore labour menu position
             if (ui.m_unit_view_mode == df::ui_unit_view_mode::PrefLabor)
             {
                 vs->feed_key(UNITVIEW_PRF);
                 vs->feed_key(UNITVIEW_PRF_PROF);
-                
+
                 // set scroll position
                 if (ui.m_view_unit_labor_submenu >= 0)
                 {

@@ -170,7 +170,7 @@ static void setSdlKeyNames()
 bool KeyMap::loadKeyBindings(DFHack::color_ostream& out, const string& file)
 {
     setSdlKeyNames();
-    
+
     const std::vector<config_symbol> symbols = parse_config_file(file);
     out.color(COLOR_RED);
     if (symbols.empty())
@@ -178,11 +178,11 @@ bool KeyMap::loadKeyBindings(DFHack::color_ostream& out, const string& file)
         out << "No interface key config symbols found." << endl;
         return false;
     }
-    
+
     df::interface_key key = df::enums::interface_key::NONE;
     int32_t repeat = 0;
     (void)repeat;
-    
+
     for (const config_symbol& symbol : symbols)
     {
         if (symbol.op == "BIND")
@@ -192,14 +192,14 @@ bool KeyMap::loadKeyBindings(DFHack::color_ostream& out, const string& file)
                 out << "Failed to parse keybinding instruction " << symbol << endl;
                 return false;
             }
-            
+
             // interface key
             if (!find_enum_item(&key, symbol.args.at(0)))
             {
                 out << "Unknown interface key " << symbol.args.at(1);
                 return false;
             }
-            
+
             // repeat
             if (symbol.args.at(1) == "REPEAT_NOT")
             {
@@ -227,11 +227,11 @@ bool KeyMap::loadKeyBindings(DFHack::color_ostream& out, const string& file)
                     << " (wrong number of args)" << endl;
                 return false;
             }
-            
+
             KeyEvent ev;
             ev.type = EventType::type_key;
             ev.mod = std::stoi(symbol.args.at(0));
-            
+
             auto iter = sdlKeyNames.find(symbol.args.at(1));
             if (iter == sdlKeyNames.end())
             {
@@ -239,7 +239,7 @@ bool KeyMap::loadKeyBindings(DFHack::color_ostream& out, const string& file)
                 return false;
             }
             ev.key = iter->second;
-            
+
             keymap.emplace(std::move(ev), key);
         }
         else if (symbol.op == "BUTTON")
@@ -254,14 +254,14 @@ bool KeyMap::loadKeyBindings(DFHack::color_ostream& out, const string& file)
                     << " (wrong number of args)" << endl;
                 return false;
             }
-            
+
             KeyEvent ev;
             ev.type = EventType::type_unicode;
-            
+
             // TODO unicode
             std::string charname = symbol.args.at(0);
             ev.unicode = utf8_decode(charname);
-            
+
             keymap.emplace(std::move(ev), key);
         }
         else
@@ -270,7 +270,7 @@ bool KeyMap::loadKeyBindings(DFHack::color_ostream& out, const string& file)
             return false;
         }
     }
-    
+
     out.color(COLOR_RESET);
     return true;
 }
@@ -304,12 +304,12 @@ std::string KeyMap::getCommandName(df::interface_key key)
 
 std::set<df::interface_key> KeyMap::toInterfaceKey(const KeyEvent & match){
     std::set<df::interface_key> bindings;
-    
+
     if (match.interface_keys.get())
     {
         bindings.insert(match.interface_keys.get()->begin(), match.interface_keys.get()->end());
     }
-    
+
     std::pair<std::multimap<KeyEvent,df::interface_key>::iterator,std::multimap<KeyEvent,df::interface_key>::iterator> its;
 
     for (its = keymap.equal_range(match); its.first != its.second; ++its.first)

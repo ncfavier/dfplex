@@ -66,7 +66,7 @@ bool load_bans()
         }
 		return false;
 	}
-    
+
     string line;
 	while(getline(f, line)) {
         size_t comment = line.find("#");
@@ -74,17 +74,17 @@ bool load_bans()
         {
             line = line.substr(0, comment);
         }
-        
+
         // trim
         while (startsWith(line, " ")) line = line.substr(1);
         while (endsWith(line, " ")) line = line.substr(0, line.length() - 1);
-        
+
         if (line.length())
         {
             g_ban_list.push_back(line);
         }
     }
-    
+
     return true;
 }
 
@@ -184,11 +184,11 @@ bool load_text_file()
             KEYSTACK_MAX = std::stol(val);
 		}
 	}
-    
+
     // conditionals
     if (!CHAT_NAME_KEY) CHAT_NAME_REQUIRED = false;
     if (!CHAT_NAME_KEY || !CHATKEY) CHAT_ENABLED = false;
-    
+
 	return true;
 }
 

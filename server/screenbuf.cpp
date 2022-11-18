@@ -3,7 +3,7 @@
  * Copyright (c) 2014 mifki, ISC license.
  * Copyright (c) 2020 white-rabbit, ISC license
  */
- 
+
 #include "dfplex.hpp"
 
 #include <stdint.h>
@@ -79,18 +79,18 @@ ClientTile& screentile(int x, int y)
 {
     // returned for safety in some circumstances.
     static ClientTile dummy;
-    
+
     if (x < 0 || y < 0 || x >= gps->dimx || y >= gps->dimy)
     {
         return dummy;
     }
-    
+
     size_t index = x * gps->dimy + y;
     if (index >= sizeof(screenbuf_t) / sizeof(ClientTile))
     {
         return dummy;
     }
-    
+
     return screenbuf[index];
 }
 
@@ -122,16 +122,16 @@ void scrape_screenbuf(Client* cl)
 {
     UIState& ui = cl->ui;
     ui.m_construction_plan.clear();
-    
+
     int32_t vx, vy, vz;
     Gui::getViewCoords(vx, vy, vz);
-    
+
     // cursor position on the screen
     int32_t cx = cl->ui.m_cursorcoord.x - vx + K_BEVEL;
     int32_t cy = cl->ui.m_cursorcoord.y - vy + K_BEVEL;
     int32_t cz = cl->ui.m_cursorcoord.z - vz;
     Coord cursor = { cx, cy, cz };
-    
+
     // floodfill Xs to find construction plan
     if (df::global::ui->main.mode == df::ui_sidebar_mode::Build)
     if
@@ -144,7 +144,7 @@ void scrape_screenbuf(Client* cl)
         // FIXME(debug): for some reason, std::set<Coord> behaves incoorectly,
         // even with a comparator and operator< defined.
         std::set<std::tuple<int32_t, int32_t, int32_t>> visited;
-        
+
         while (!frontier.empty())
         {
             Coord c = frontier.back();
@@ -167,7 +167,7 @@ void scrape_screenbuf(Client* cl)
                             pen_colour(tile.pen),
                             c - cursor
                         );
-                        
+
                         frontier.emplace_back(
                             c.x - 1, c.y, c.z
                         );
@@ -191,22 +191,22 @@ void scrape_screenbuf(Client* cl)
 bool screenbuf_cursor(Client* cl, int32_t x, int32_t y, int32_t z)
 {
     if (!cl->ui.m_cursorcoord_set) return false;
-    
+
     // TODO: some more logic to check if cursor isn't visible.
     // (On some screens, the cursorcoord is set but not drawn)
-    
+
     if (!on_screen({x, y, z})) return false;
-    
+
     const auto& tile = screentile(x, y);
     if (!tile.is_map) return false;
-    
+
     int32_t vx, vy, vz;
     Gui::getViewCoords(vx, vy, vz);
-    
+
     int32_t my_cx = cl->ui.m_cursorcoord.x - vx + K_BEVEL;
     int32_t my_cy = cl->ui.m_cursorcoord.y - vy + K_BEVEL;
     int32_t my_cz = cl->ui.m_cursorcoord.z - vz;
-    
+
     return (x == my_cx && y == my_cy && z == my_cz);
 }
 
@@ -241,7 +241,7 @@ static void set_status()
     {
 	    header_status.emplace_back(64 | (4 << 3) | 6, " SIEGE ");
     }
-    
+
     // add 5 blank tiles to hide what's behind
     header_status.emplace_back(64, std::string(5, (char)219));
 }
@@ -283,7 +283,7 @@ bool blank_sidebar()
             }
         }
     }
-    
+
     return dims.menu_on;
 }
 
@@ -291,15 +291,15 @@ void modify_screenbuf(Client* cl)
 {
     // modifications only occur in dwarfmode
     if (!is_dwarf_mode()) return;
-    
+
     if (gps->dimx < 2 || gps->dimy < 2) return;
-    
+
     df::viewscreen* vs;
     virtual_identity* id;
     UPDATE_VS(vs, id);
-    
+
     DFHack::Gui::DwarfmodeDims dims = Gui::getDwarfmodeViewDims();
-    
+
     // menu options (custom keys)
     if (id == &df::viewscreen_dwarfmodest::_identity &&
         df::global::ui->main.mode == df::enums::ui_sidebar_mode::Default)
@@ -309,7 +309,7 @@ void modify_screenbuf(Client* cl)
             const int menu_additions_x = dims.menu_x1 + 1;
             const int menu_additions_y = dims.y1 + 22;
             // amount of space
-            
+
             const int ymax = gps->dimy - 2;
             int x = menu_additions_x;
             int y = menu_additions_y + 1;
@@ -323,14 +323,14 @@ void modify_screenbuf(Client* cl)
                     {
                         std::string keystr = key_display_name(MULTIPLEXKEY);
                         write_to_screen(x, y, keystr, 4, 0, 1);
-                        
-                        write_to_screen(x + keystr.length(), y, 
+
+                        write_to_screen(x + keystr.length(), y,
                             (plexing)
                                 ? ": Disable Multiplex"
                                 : ": Enable Multiplex",
                             7, 0, 0
                         );
-                        
+
                         ++y;
                     }
                     break;
@@ -341,13 +341,13 @@ void modify_screenbuf(Client* cl)
                     {
                         std::string keystr = key_display_name(DEBUGKEY);
                         write_to_screen(x, y, keystr, 4, 0, 1);
-                        
+
                         write_to_screen(
-                            x + keystr.length(), y, 
+                            x + keystr.length(), y,
                             ": Debug Info",
                             7, 0, 0
                         );
-                        
+
                         ++y;
                     }
                     break;
@@ -365,18 +365,18 @@ void modify_screenbuf(Client* cl)
                         {
                             s += key_display_name(NEXT_CLIENT_POS_KEY);
                         }
-                    
+
                         write_to_screen(x, y, s, 4, 0, 1);
-                        
-                        write_to_screen(x + s.length(), y, 
+
+                        write_to_screen(x + s.length(), y,
                             (cl->ui.m_stored_camera_return)
                                 ? ": Return to last Position"
                                 : ": Follow Client",
                             7, 0, 0
                         );
-                        
+
                         ++y;
-                        
+
                         if (!cl->ui.m_stored_camera_return)
                         {
                             std::string follow_name = "";
@@ -399,7 +399,7 @@ void modify_screenbuf(Client* cl)
                                     follow_name = "\"" + follow_name + "\"";
                                     follow_bold = true;
                                 }
-                                
+
                                 // triangles flanking name
                                 // open if the player is following someone else, closed otherwise.
                                 if (spectatee && spectatee->ui.m_following_client)
@@ -411,12 +411,12 @@ void modify_screenbuf(Client* cl)
                                     follow_name = std::string(1, 16) + follow_name + std::string(1,17);
                                 }
                             }
-                            write_to_screen((dims.menu_x2 + dims.menu_x1) / 2 - follow_name.length() / 2, y, 
+                            write_to_screen((dims.menu_x2 + dims.menu_x1) / 2 - follow_name.length() / 2, y,
                                 follow_name,
                                 follow_colour, 0, follow_bold
                             );
                         }
-                        
+
                         ++y;
                     }
                     break;
@@ -426,14 +426,14 @@ void modify_screenbuf(Client* cl)
                     if (CHAT_NAME_KEY)
                     {
                         std::string s = key_display_name(CHAT_NAME_KEY);
-                    
+
                         write_to_screen(x, y, s, 4, 0, 1);
-                        
-                        write_to_screen(x + s.length(), y, 
+
+                        write_to_screen(x + s.length(), y,
                             ": User Config",
                             7, 0, 0
                         );
-                        
+
                         ++y;
                     }
                     break;
@@ -445,37 +445,37 @@ void modify_screenbuf(Client* cl)
                         if (!CHAT_NAME_REQUIRED || cl->id->nick.length())
                         {
                             std::string s = key_display_name(CHATKEY);
-                            
+
                             write_to_screen(x, y, s, 4, 0, 1);
-                            
-                            write_to_screen(x + s.length(), y, 
+
+                            write_to_screen(x + s.length(), y,
                                 ": Send Chat Message",
                                 7, 0, 0
                             );
                         }
                         else
                         {
-                            write_to_screen(x, y, 
+                            write_to_screen(x, y,
                                 "(Set username to chat)",
                                 7, 0, 0
                             );
                         }
-                        
+
                         ++y;
                     }
                     break;
                 }
             }
-            
+
             if (cl->ui.m_dfplex_chat_config)
             {
                 blank_sidebar();
-                
+
                 int x = dims.menu_x1 + 1;
                 int y = dims.y1 + 1;
-                
+
                 write_to_screen(x, y, "N", 4, 0, 1);
-                write_to_screen(x + 1, y, 
+                write_to_screen(x + 1, y,
                     ": Set Username",
                     7, 0, 0
                 );
@@ -485,30 +485,30 @@ void modify_screenbuf(Client* cl)
                 {
                     uname_s += blink_cursor();
                 }
-                write_to_screen(x, y, 
+                write_to_screen(x, y,
                     uname_s,
                     cl->id->nick_colour, 0, 1
                 );
-                
+
                 y+= 2;
-                write_to_screen(x + 8, y, 
+                write_to_screen(x + 8, y,
                     ": Set Colour",
                     7, 0, 0
                 );
                 for (int32_t i = 0; i < 8; ++i)
                 {
-                    write_to_screen(x + i, y, 
+                    write_to_screen(x + i, y,
                         std::string(1, '0' + i),
                         i, (i == cl->id->nick_colour) ? 7 : 0, 1
                     );
                 }
-                
+
                 y += 2;
-                
+
                 if (CHAT_ENABLED)
                 {
                     write_to_screen(x, y, "H", 4, 0, 1);
-                    write_to_screen(x + 1, y, 
+                    write_to_screen(x + 1, y,
                         (cl->ui.m_dfplex_hide_chat) ? ": Show Chat" : ": Hide Chat",
                         7, 0, 0
                     );
@@ -517,7 +517,7 @@ void modify_screenbuf(Client* cl)
             }
         }
     }
-    
+
     // remaining modifications only occur in multiplex mode.
     if (!plexing) return;
 
@@ -540,7 +540,7 @@ void modify_screenbuf(Client* cl)
 
     int32_t vx, vy, vz;
     Gui::getViewCoords(vx, vy, vz);
-    
+
     if (id == &df::viewscreen_dwarfmodest::_identity)
     {
         // chat messages
@@ -551,7 +551,7 @@ void modify_screenbuf(Client* cl)
             const uint32_t width = CHAT_WIDTH;
             int32_t top = gps->dimy - 1 - CHAT_HEIGHT;
             bool hide_expired = true;
-            
+
             bool hide_all = (cl->ui.m_dfplex_hide_chat);
             if (cl->ui.m_dfplex_chat_entering)
             {
@@ -559,55 +559,55 @@ void modify_screenbuf(Client* cl)
                 hide_expired = false;
                 hide_all = false;
             }
-            
+
             if (cl->ui.m_dfplex_chat_entering)
             {
                 std::stringstream ss;
                 ss << cl->ui.m_dfplex_chat_message;
-                    
+
                 std::vector<std::string> lines = word_wrap_lines(ss.str(), width);
-                
+
                 if (lines.empty()) lines.emplace_back();
                 lines.back() += blink_cursor();
-                
+
                 y -= lines.size();
-                
+
                 uint8_t fgcol = 0;
                 if (lines.size() > CHAT_MESSAGE_LINES)
                 {
                     fgcol = 4;
                 }
-                
+
                 for (size_t i = 0; i < lines.size(); ++i)
                 {
                     write_to_screen(x, y + i, lines.at(i), fgcol, 0, 1);
                 }
-                
+
                 if (cl->id->nick.length())
                 {
                     --y;
                     write_to_screen(x, y, cl->id->nick + ":", cl->id->nick_colour, 0, 1);
                 }
             }
-            
+
             // show other messages
             for (size_t i = g_chatlog.m_messages.size(); i --> 0;)
             {
                 if (hide_all) break;
-                
+
                 ChatMessage& message = g_chatlog.m_messages.at(i);
-                
+
                 if (hide_expired && message.is_expired(cl)) break;
-                
+
                 const bool flash = message.is_flash(cl);
-                
+
                 std::vector<std::string> lines = word_wrap_lines(message.m_contents, width);
                 y -= lines.size() + 1;
-                
+
                 if (y < top)
                 {
                     message.expire(cl);
-                    
+
                     // early out
                     if (i < g_chatlog.m_active_message_index) break;
                 }
@@ -618,7 +618,7 @@ void modify_screenbuf(Client* cl)
                         write_to_screen(x, y + i, lines.at(i), (flash ? 7 : 0), 0, 1);
                     }
                 }
-                
+
                 if (message.m_sender->nick.length())
                 {
                     --y;
@@ -626,18 +626,18 @@ void modify_screenbuf(Client* cl)
                 }
             }
         }
-        
+
         // cursors
         int32_t my_cx = cl->ui.m_cursorcoord.x - vx + K_BEVEL;
         int32_t my_cy = cl->ui.m_cursorcoord.y - vy + K_BEVEL;
         int32_t my_cz = cl->ui.m_cursorcoord.z - vz;
-        
+
         for (size_t i = 0; i < get_client_count(); ++i)
         {
             Client* client;
             client = get_client(i);
             if (client == cl) continue;
-            
+
             // find cursor position.
             UIState& ui = client->ui;
             if (ui.m_cursorcoord_set && ui.m_cursorcoord.x >= 0 && ui.m_cursorcoord.y >= 0)
@@ -646,7 +646,7 @@ void modify_screenbuf(Client* cl)
                 int32_t cx = ui.m_cursorcoord.x - vx + K_BEVEL;
                 int32_t cy = ui.m_cursorcoord.y - vy + K_BEVEL;
                 int32_t cz = ui.m_cursorcoord.z - vz;
-                
+
                 // designation coordinate
                 int32_t dx = -1, dy = -1, dz = 0;
                 if (ui.m_designationcoord_share && ui.m_designationcoord_set && ui.m_designationcoord.x >= 0 && ui.m_designationcoord.y >= 0)
@@ -667,7 +667,7 @@ void modify_screenbuf(Client* cl)
                     dy = ui.m_burrowcoord.y - vy + K_BEVEL;
                     dz = ui.m_burrowcoord.z - vz;
                 }
-                
+
                 if (ui.m_construction_plan.empty())
                 {
                     if (on_screen({cx, cy, cz}))
@@ -680,7 +680,7 @@ void modify_screenbuf(Client* cl)
             		        if (CURSOR_IS_TEXT) io_tile.is_text = true;
                         }
                     }
-                    
+
                     // flicker
                     if ((frames_elapsed / 12) % 2)
                     {
@@ -730,7 +730,7 @@ void modify_screenbuf(Client* cl)
                                     if (colour == 0x45) colour = 0x43;
                                     if (colour == 0x05) colour = 0x03;
                                     if (colour == 0x44) colour = 0x04;
-                                    
+
                                     set_pen_colour(tile.pen, colour);
                                     tile.pen.ch = 'X';
                                 }
@@ -749,9 +749,9 @@ void transfer_screenbuf_client(Client* client)
     {
         // status message in the dwarf mode screen border, e.g. *PAUSED*
         set_status();
-        
+
         modify_screenbuf(client);
-        
+
         size_t count = std::min(std::max(0, gps->dimx * gps->dimy), 256 * 256);
         if (gps->dimx != client->dimx || gps->dimy != client->dimy)
         {
@@ -763,7 +763,7 @@ void transfer_screenbuf_client(Client* client)
         for (size_t i = 0; i < count; ++i)
         {
             ClientTile ct = screenbuf[i];
-            
+
             // compare to see if the tile has changed
             if (client->sc[i] != ct)
             {
@@ -792,13 +792,13 @@ static void update_tilebuf(int x, int y)
     assert(0 <= y && y < gps->dimy);
     const int tile = x * gps->dimy + y;
     if (tile >= 256 * 256) return;
-    
+
     // FIXME: is true the right thing to pass as the 3rd argument here?
     Screen::Pen pen = Screen::readTile(x, y, true);
 
     bool is_map, is_overworld, is_text;
     is_text = is_text_tile(x, y, is_map, is_overworld);
-    
+
     screenbuf[tile] = ClientTile{ pen, 1, is_text, is_overworld, is_map };
 }
 
@@ -841,7 +841,7 @@ void set_size(int32_t w, int32_t h)
     // swap out screen for our own.
     prev_dimx = gps->dimx;
     prev_dimy = gps->dimy;
-    
+
     paranoid_resize(w, h);
 }
 
@@ -853,7 +853,7 @@ void perform_render()
     (void)id;
     // draw the screen
     vs->render();
-    
+
     // read the screen
     read_screenbuf_tiles();
 }
