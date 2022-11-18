@@ -426,13 +426,16 @@ void apply_key(const KeyEvent& match, Client* cl, bool raw)
     apply_command(keys, cl, raw);
 }
 
-void apply_keys(Client* client, bool raw)
+void apply_keys(Client* client, bool uniplexing)
 {
+    bool raw = uniplexing;
+
     while (!client->keyqueue.empty())
     {
         const KeyEvent& match = client->keyqueue.front();
 
-        apply_key(match, client, raw);
+        if (!(UNIPLEX_READONLY && uniplexing))
+            apply_key(match, client, raw);
 
         client->keyqueue.pop();
     }

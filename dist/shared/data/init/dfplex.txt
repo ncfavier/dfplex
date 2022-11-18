@@ -23,6 +23,11 @@ Zero means unbounded.
 Enable autosave while nobody is playing. You probably shouldn't use this yet.
 [AUTOSAVE_WHILE_IDLE:NO]
 
+Set this to 1 to make the game read-only when not multiplexing.
+This prevents clients from using the option menus (e.g. to abandon the fortress, or escape into the title screen).
+Forces MULTIPLEXKEY to 0, disabling it.
+[UNIPLEX_READONLY:0]
+
 This key toggles multiplex mode.
 [MULTIPLEXKEY:92]
 

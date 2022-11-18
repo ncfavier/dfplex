@@ -23,6 +23,7 @@ extern uint32_t MAX_CLIENTS;
 extern uint16_t PORT;
 extern uint16_t STATICPORT;
 extern std::string STATICDIR;
+extern bool UNIPLEX_READONLY;
 extern uint32_t MULTIPLEXKEY;
 extern uint32_t DEBUGKEY;
 extern uint32_t SERVERDEBUGKEY;

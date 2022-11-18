@@ -12,6 +12,7 @@ uint32_t MAX_CLIENTS = 0;
 uint16_t PORT = 1234;
 uint16_t STATICPORT = 8000;
 std::string STATICDIR = "hack/www";
+bool UNIPLEX_READONLY = false;
 uint32_t MULTIPLEXKEY = 0;
 uint32_t CHATKEY = 0;
 uint32_t CHAT_NAME_KEY = 0;
@@ -182,12 +183,16 @@ bool load_text_file()
 		}
         if (key == "KEYSTACK_MAX") {
             KEYSTACK_MAX = std::stol(val);
-		}
+            }
+        if (key == "UNIPLEX_READONLY") {
+            UNIPLEX_READONLY = !!std::stol(val);
+        }
 	}
 
     // conditionals
     if (!CHAT_NAME_KEY) CHAT_NAME_REQUIRED = false;
     if (!CHAT_NAME_KEY || !CHATKEY) CHAT_ENABLED = false;
+    if (UNIPLEX_READONLY) MULTIPLEXKEY = 0;
 
 	return true;
 }
