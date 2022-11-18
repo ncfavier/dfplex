@@ -10,6 +10,7 @@
 bool AUTOSAVE_WHILE_IDLE = 0;
 uint32_t MAX_CLIENTS = 0;
 uint16_t PORT = 1234;
+bool AUTH_REQUIRED = false;
 uint16_t STATICPORT = 8000;
 std::string STATICDIR = "hack/www";
 bool UNIPLEX_READONLY = false;
@@ -120,6 +121,9 @@ bool load_text_file()
 		if (key == "MAX_CLIENTS") {
 			MAX_CLIENTS = (uint32_t)std::stol(val);
 		}
+                if (key == "AUTH_REQUIRED") {
+                        AUTH_REQUIRED = !!std::stol(val);
+                }
 		if (key == "PAUSE_BEHAVIOUR" || key == "PAUSE")
         {
 		    if (val == "ALWAYS")

@@ -20,7 +20,11 @@ The max number of concurrent connections that the server will accept.
 Zero means unbounded.
 [MAX_CLIENTS:0]
 
-Enable autosave while nobody is playing. You probably shouldn't use this yet.
+If set to 1, clients are required to provide a secret to be able to play.
+The secret is defined by the DFPLEX_SECRET environment variable.
+[AUTH_REQUIRED:0]
+
+Enable autosave while nobody is playing. Unimplemented yet.
 [AUTOSAVE_WHILE_IDLE:NO]
 
 Set this to 1 to make the game read-only when not multiplexing.

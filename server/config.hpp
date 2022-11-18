@@ -21,6 +21,7 @@ enum class PauseBehaviour {
 extern bool AUTOSAVE_WHILE_IDLE;
 extern uint32_t MAX_CLIENTS;
 extern uint16_t PORT;
+extern bool AUTH_REQUIRED;
 extern uint16_t STATICPORT;
 extern std::string STATICDIR;
 extern bool UNIPLEX_READONLY;

@@ -28,7 +28,7 @@ struct ClientIdentity
     std::string addr;
     std::string nick;
     uint8_t nick_colour = 0;
-    bool is_admin = false;
+    bool is_authed = false;
     client_long_id_t long_id = 0;
 };
 

@@ -371,14 +371,20 @@ void on_open_ix(const ix::WebSocketMessagePtr& msg, conn_hdl_t connection, WebSo
     std::string user_secret = "";
 
     Client* cl = add_client();
-	cl->id->is_admin = (user_secret == SECRET);
+	cl->id->is_authed = (user_secret == SECRET);
     cl->id->addr = addr;
     cl->id->nick = nick;
 
-    DFPlex::log_message("  Client addr: \"" + addr + "\"");
-    if (cl->id->is_admin)
+    if (AUTH_REQUIRED && !cl->id->is_authed)
     {
-        DFPlex::log_message("  Client is admin.");
+        webSocket->close(4002, "Authorization required.");
+        return;
+    }
+
+    DFPlex::log_message("  Client addr: \"" + addr + "\"");
+    if (cl->id->is_authed)
+    {
+        DFPlex::log_message("  Client is authorized.");
     }
     if (cl->id->nick.length())
     {
@@ -584,14 +590,20 @@ void on_open_ws(server* s, conn_hdl hdl)
 	std::string user_secret = (path.size() > 1) ? path[1] : "";
 
     Client* cl = add_client();
-	cl->id->is_admin = (user_secret == SECRET);
+	cl->id->is_authed = (user_secret == SECRET);
     cl->id->addr = addr;
     cl->id->nick = nick;
 
-    DFPlex::log_message("  Client addr: \"" + addr + "\"");
-    if (cl->id->is_admin)
+    if (AUTH_REQUIRED && !cl->id->is_authed)
     {
-        DFPlex::log_message("  Client is admin.");
+        s->close(hdl, 4002, "Authorization required.");
+        return;
+    }
+
+    DFPlex::log_message("  Client addr: \"" + addr + "\"");
+    if (cl->id->is_authed)
+    {
+        DFPlex::log_message("  Client is authorized.");
     }
     if (cl->id->nick.length())
     {
